@@ -363,12 +363,15 @@ impl SplitButton {
         let fg = recipe.fg(self.enabled);
         let part = |e: El| {
             let e = e.h(sizes::CONTROL_HEIGHT).center().fill(rc(recipe.fill.pick(self.enabled)));
-            if self.enabled && style::pinned().is_none() {
-                let e = e.hover_fill(rc(recipe.fill.hover)).press_fill(rc(recipe.fill.pressed)).press_color(rc(recipe.fg.pressed));
-                focus_rect(e, t, R)
+            if !self.enabled {
+                return e;
+            }
+            let e = if style::pinned().is_none() {
+                e.hover_fill(rc(recipe.fill.hover)).press_fill(rc(recipe.fill.pressed)).press_color(rc(recipe.fg.pressed))
             } else {
                 e
-            }
+            };
+            focus_rect(e, t, R)
         };
         let mut primary = row().px(11.0).pb(1.0).gap(8.0);
         if let Some(i) = self.icon {
