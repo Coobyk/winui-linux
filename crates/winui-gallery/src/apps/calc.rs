@@ -52,7 +52,7 @@ fn key(k: Key, fill: u32, accent: bool, id: &'static str) -> El {
         .center()
         .role("button")
         .label(id)
-        .focusable(true)
+        .focusable(id.len() == 1 && id.as_bytes()[0].is_ascii_digit() || matches!(id, "C" | "CE" | "back"))
         .key(format!("calc-{id}"))
         .child(content);
     if id.len() == 1 && id.as_bytes()[0].is_ascii_digit() {
