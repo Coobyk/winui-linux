@@ -198,6 +198,7 @@ fn nav_item(s: &State, t: &Theme, p: Page) -> El {
         .radius(radii::CONTROL)
         .hover(c(k.subtle_fill_color_secondary))
         .press(c(k.subtle_fill_color_tertiary))
+        .focusable(true)
         .on_press(move |s: &mut State| s.page = p);
     if sel {
         r = r.fill(c(k.subtle_fill_color_secondary)).child(

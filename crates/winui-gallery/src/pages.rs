@@ -454,6 +454,8 @@ fn settings_page(s: &State, t: &Theme) -> El {
             .fill(c(*col_))
             .center()
             .key(format!("accent-{i}"))
+            .role("button")
+            .focusable(true)
             .label(name.to_string())
             .on_press(move |s: &mut State| s.accent = i);
         if i == s.accent {
