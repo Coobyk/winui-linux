@@ -9,12 +9,13 @@ use winui_icons::Symbol;
 use winui_materials as mat;
 use winui_theme::{Color, Theme};
 
-/// The bundled text face: Inter, the contract-sanctioned fallback for Segoe
-/// UI Variable (embedded so snaps render identically on every machine).
+/// The bundled text face: Selawik, Microsoft's open metric-compatible stand-in
+/// for Segoe UI (embedded so snaps render identically on every machine).
 const FONTS: &[&[u8]] = &[
-    include_bytes!("../assets/Inter-Regular.ttf"),
-    include_bytes!("../assets/Inter-Medium.ttf"),
-    include_bytes!("../assets/Inter-SemiBold.ttf"),
+    include_bytes!("../assets/Selawik-Light.ttf"),
+    include_bytes!("../assets/Selawik-Regular.ttf"),
+    include_bytes!("../assets/Selawik-SemiBold.ttf"),
+    include_bytes!("../assets/Selawik-Bold.ttf"),
 ];
 
 /// Windows personalization accents for the Settings picker.
@@ -119,7 +120,7 @@ pub fn spec() -> AppSpec<State> {
         scenes: SCENES,
         min_size: Some((640.0, 480.0)),
         fonts: FONTS,
-        families: ("Inter", "Inter, sans-serif"),
+        families: ("Selawik, Segoe UI, Inter, sans-serif", "Inter, sans-serif"),
         ..AppSpec::new("WinUI 3 Gallery", (1200.0, 760.0), State::default, view)
     }
 }
@@ -281,24 +282,110 @@ fn nav_pane(s: &State, th: &Theme) -> El {
     )
 }
 
+/// The app's tiles icon: four rounded squares in accent shades, like the
+/// Gallery's own icon.
+fn app_icon(th: &Theme) -> El {
+    let a = th.accent();
+    let tile = |c: winui_theme::Color| {
+        el().size(7.0, 7.0).radius(1.5).fill(mat::rc(c))
+    };
+    col().gap(2.0)
+        .child(row().gap(2.0).child(tile(a.light2)).child(tile(a.base)))
+        .child(row().gap(2.0).child(tile(a.base)).child(tile(a.dark1)))
+}
+
+/// A system caption button: 46×32 hit area, centred glyph, subtle hover.
+fn caption_button(th: &Theme, glyph_el: El, close: bool) -> El {
+    let t = th.tokens();
+    let e = el().size(46.0, 32.0)
+        .center()
+        .cursor(rune::Cursor::Pointer)
+        .child(glyph_el);
+    if close {
+        e.hover_fill(mat::rc(winui_theme::Color::rgb(0xC4, 0x2B, 0x1C)))
+            .role("button")
+            .label("Close")
+    } else {
+        e.hover_fill(mat::rc(t.subtle_fill_color_secondary))
+            .role("button")
+            .label("Window caption")
+    }
+}
+
+/// The custom title bar (TitleBarHeightOption::Tall = 48px): back button, app
+/// icon + title on the left, system caption buttons on the right, Mica
+/// showing through everywhere.
+fn title_bar(s: &State, th: &Theme) -> El {
+    let t = th.tokens();
+    let _ = s;
+    let glyph_c = mat::rc(t.text_fill_color_secondary);
+    row().w_full()
+        .h(48.0)
+        .items_center()
+        .child(
+            el().size(40.0, 32.0)
+                .ml(6.0)
+                .center()
+                .radius(4.0)
+                .role("button")
+                .label("Back")
+                .hover_fill(mat::rc(t.subtle_fill_color_secondary))
+                .cursor(rune::Cursor::Pointer)
+                .on_press(|s: &mut State| s.page = "home")
+                .child(ctl::glyph(Symbol::Back, 12.0, glyph_c)),
+        )
+        .child(
+            row().items_center().gap(8.0).ml(4.0)
+                .child(app_icon(th))
+                .child(
+                    text("WinUI 3 Gallery".to_string())
+                        .font(rune::TextStyle::new(12.0, 400.0))
+                        .color(mat::rc(t.text_fill_color_primary)),
+                ),
+        )
+        .child(el().grow(1.0))
+        .child(caption_button(
+            th,
+            el().size(10.0, 1.0).fill(glyph_c),
+            false,
+        ))
+        .child(caption_button(
+            th,
+            el().size(10.0, 10.0).border(1.0, glyph_c),
+            false,
+        ))
+        .child(caption_button(
+            th,
+            ctl::glyph(Symbol::Dismiss, 10.0, glyph_c),
+            true,
+        ))
+        .child(el().w(8.0))
+}
+
 pub fn view(s: &State, cx: &mut Cx<State>) -> El {
     let th = theme(s, cx);
     let t = th.tokens();
     let content = page_content(s, &th);
     mat::mica(&th).key("root").child(
-        row().absolute(0.0, 0.0)
+        col().absolute(0.0, 0.0)
             .w_full()
             .h_full()
-            .child(nav_pane(s, &th))
+            .child(title_bar(s, &th))
             .child(
-                el().grow(1.0)
-                    .min_w(0.0)
-                    .h_full()
-                    .fill(mat::rc(t.layer_on_mica_base_alt_fill_color_default))
-                    .corners([8.0, 0.0, 0.0, 0.0])
-                    .border_sides([1.0, 1.0, 0.0, 0.0], mat::rc(t.card_stroke_color_default))
-                    .clip_corners([8.0, 0.0, 0.0, 0.0])
-                    .child(content),
+                row().grow(1.0)
+                    .min_h(0.0)
+                    .w_full()
+                    .child(nav_pane(s, &th))
+                    .child(
+                        el().grow(1.0)
+                            .min_w(0.0)
+                            .h_full()
+                            .fill(mat::rc(t.layer_on_mica_base_alt_fill_color_default))
+                            .corners([8.0, 0.0, 0.0, 0.0])
+                            .border_sides([1.0, 1.0, 0.0, 0.0], mat::rc(t.card_stroke_color_default))
+                            .clip_corners([8.0, 0.0, 0.0, 0.0])
+                            .child(content),
+                    ),
             ),
     )
 }
@@ -323,7 +410,10 @@ fn home_page(s: &State, th: &Theme) -> El {
     let _ = s;
     let hero = el().w_full()
         .radius(8.0)
-        .fill(mat::rc(th.tokens().accent_fill_color_default))
+        .linear_gradient(0.35, [
+            (0.0, mat::rc(th.accent().light1)),
+            (1.0, mat::rc(th.accent().dark1)),
+        ])
         .box_shadow(mat::elevation(th, 8.0))
         .child(
             col().padding(32.0).gap(8.0)
