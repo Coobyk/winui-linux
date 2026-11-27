@@ -69,7 +69,8 @@ fn app_scenes_are_wired_and_build() {
         rt.update(move |st, _| set(st));
         rt.frame(0.0);
         assert_eq!(rt.state.app, Some(app));
-        assert!(!rt.elements().is_empty(), "{}", app.id());
+        assert!(rt.find(&format!("app-{}", app.id())).is_some(), "{}", app.id());
+        assert!(rt.find("nav-home").is_none(), "{} rendered the gallery shell", app.id());
     }
 }
 

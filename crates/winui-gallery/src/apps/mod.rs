@@ -69,7 +69,7 @@ pub fn view(s: &State, app: App) -> El {
         App::Snipping => snipping::view(s),
         App::Terminal => terminal::view(s),
     };
-    window(body)
+    window(body).key(format!("app-{}", app.id()))
 }
 
 /// `#RRGGBB` → Rune colour.
