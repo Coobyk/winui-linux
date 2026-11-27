@@ -149,10 +149,15 @@ impl TextBox {
                 .fill(rc(k.control_fill_color_input_active))
                 .border(1.0, rc(k.control_stroke_color_default))
                 .child(rune::el().absolute(0.0, sizes::CONTROL_HEIGHT - 2.0).size(self.width, 2.0).fill(rc(k.accent_fill_color_default))),
-            (true, false) => field
-                .fill(rc(k.control_fill_color_default))
-                .hover_fill(rc(k.control_fill_color_secondary))
-                .border_gradient(1.0, rc(k.control_stroke_color_default), rc(k.control_strong_stroke_color_default)),
+            // TextControlElevationBorderBrush: ControlStrokeColorDefault with a 1px
+            // ControlStrongStrokeColorDefault bottom edge (clipped to the 4px corners).
+            (true, false) => {
+                let f = field
+                    .fill(rc(style::by_state(k.control_fill_color_default, k.control_fill_color_secondary, k.control_fill_color_default)))
+                    .border(1.0, rc(k.control_stroke_color_default))
+                    .child(rune::el().absolute(0.0, sizes::CONTROL_HEIGHT - 1.0).size(self.width, 1.0).fill(rc(k.control_strong_stroke_color_default)));
+                if style::pinned().is_none() { f.hover_fill(rc(k.control_fill_color_secondary)) } else { f }
+            }
         };
         if en {
             field = self.focus.attach(field, ());

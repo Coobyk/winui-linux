@@ -22,6 +22,7 @@ pub use range::*;
 pub use rune;
 pub use rune::El;
 pub use selection::*;
+pub use style::{with_visual_state, VisualState};
 pub use shim::icons::{Glyph, Symbol};
 pub use shim::theme::{Theme, ThemeMode, Tokens};
 pub use status::*;

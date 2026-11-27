@@ -1,5 +1,9 @@
 //! Every control in its Gallery arrangement. Headless:
-//! `cargo run -p winui-controls --example demo -- --scene buttons --snap out.png [--theme dark]`.
+//! `cargo run -p winui-controls --example demo -- --scene buttons --snap out.png [--theme light|dark]`.
+//!
+//! Per-control state grids (Rest / PointerOver / Pressed / Disabled, pinned with
+//! `with_visual_state`): `button`, `togglebutton`, `checkbox`, `radiobutton`, `toggleswitch`,
+//! `slider`, `textbox`, `combobox`, `caption`.
 use rune::{col, row, AppSpec, Cx, El};
 use winui_controls::style::{self, rc};
 use winui_controls::*;
@@ -41,8 +45,105 @@ macro_rules! scenes {
 
 const SCENES: &[(&str, fn(&mut State))] = scenes![
     "buttons", "selection", "slider", "colorpicker", "text", "menus", "navigation", "tabview", "infobar", "progress",
-    "tooltip", "expander", "listview", "people",
+    "tooltip", "expander", "listview", "people", "button", "togglebutton", "checkbox", "radiobutton", "toggleswitch",
+    "textbox", "combobox", "caption",
 ];
+
+const STATES: [&str; 4] = ["Rest", "PointerOver", "Pressed", "Disabled"];
+
+type Cell<'a> = (&'a str, Box<dyn Fn(bool, usize) -> El + 'a>);
+
+/// A labeled grid: one row per variant, one column per `CommonStates` visual state. Column
+/// `i < 3` is built enabled with state `i` pinned; the last column is `enabled(false)`.
+fn grid(t: &Theme, title: &str, cols: [&str; 4], cell: f32, rows: Vec<Cell<'_>>) -> El {
+    let k = t.tokens();
+    let cap = |s: &str| rune::text(s.to_owned()).font(style::caption(t)).color(rc(k.text_fill_color_secondary));
+    let mut head = row().gap(16.0).child(col().w(120.0));
+    for c in cols {
+        head = head.child(col().w(cell).child(cap(c)));
+    }
+    let mut g = col().gap(16.0).child(head);
+    for (name, f) in rows {
+        let mut r = row().gap(16.0).center_y().child(col().w(120.0).child(cap(name)));
+        for (i, st) in [VisualState::Rest, VisualState::PointerOver, VisualState::Pressed].into_iter().enumerate() {
+            r = r.child(col().w(cell).child(with_visual_state(st, || f(true, i))));
+        }
+        g = g.child(r.child(col().w(cell).child(f(false, 3))));
+    }
+    section(t, title, g)
+}
+
+fn button_states(t: &Theme) -> El {
+    grid(t, "Button", STATES, 150.0, vec![
+        ("Standard", Box::new(|en, _| Button::new("Button").enabled(en).view(t))),
+        ("Accent", Box::new(|en, _| Button::new("Accent").accent(true).enabled(en).view(t))),
+        ("Icon + text", Box::new(|en, _| Button::new("Save").icon(Symbol::Save).enabled(en).view(t))),
+        ("HyperlinkButton", Box::new(|en, _| HyperlinkButton::new("Link").enabled(en).view(t))),
+        ("RepeatButton", Box::new(|en, _| RepeatButton::new("Repeat").enabled(en).view(t))),
+    ])
+}
+
+fn togglebutton_states(t: &Theme) -> El {
+    grid(t, "ToggleButton, DropDownButton, SplitButton", STATES, 170.0, vec![
+        ("Toggle off", Box::new(|en, _| ToggleButton::new("Toggle").enabled(en).view(t))),
+        ("Toggle on", Box::new(|en, _| ToggleButton::new("Toggle").checked(true).enabled(en).view(t))),
+        ("DropDownButton", Box::new(|en, _| DropDownButton::new("Email").icon(Symbol::Mail).enabled(en).view(t))),
+        ("SplitButton", Box::new(|en, _| SplitButton::new("Color").enabled(en).view(t))),
+        ("Accent split", Box::new(|en, _| SplitButton::new("Color").accent(true).enabled(en).view(t))),
+    ])
+}
+
+fn checkbox_states(t: &Theme) -> El {
+    use selection::CheckState::*;
+    grid(t, "CheckBox", STATES, 150.0, [("Unchecked", Unchecked), ("Checked", Checked), ("Indeterminate", Indeterminate)]
+        .into_iter()
+        .map(|(n, st)| (n, Box::new(move |en, _| CheckBox::new("Label").state(st).enabled(en).view(t)) as Box<dyn Fn(bool, usize) -> El>))
+        .collect())
+}
+
+fn radiobutton_states(t: &Theme) -> El {
+    grid(t, "RadioButton", STATES, 150.0, vec![
+        ("Unchecked", Box::new(|en, _| RadioButton::new("Label").enabled(en).view(t))),
+        ("Checked", Box::new(|en, _| RadioButton::new("Label").checked(true).enabled(en).view(t))),
+    ])
+}
+
+fn toggleswitch_states(t: &Theme) -> El {
+    grid(t, "ToggleSwitch", STATES, 150.0, vec![
+        ("Off", Box::new(|en, _| ToggleSwitch::new().enabled(en).view(t))),
+        ("On", Box::new(|en, _| ToggleSwitch::new().on(true).enabled(en).view(t))),
+    ])
+}
+
+fn slider_states(t: &Theme) -> El {
+    grid(t, "Slider states", STATES, 180.0, vec![(
+        "Value 40",
+        Box::new(|en, i| Slider::new().value(40.0).width(180.0).enabled(en).key(format!("sl{i}")).view(t)),
+    )])
+}
+
+fn textbox_states(t: &Theme) -> El {
+    grid(t, "TextBox", ["Rest", "PointerOver", "Focused", "Disabled"], 180.0, vec![
+        ("Placeholder", Box::new(|en, i| TextBox::new(&rune::TextEdit::new("")).placeholder("Name").width(180.0).enabled(en).focused(i == 2).key(format!("p{i}")).view(t))),
+        ("Text", Box::new(|en, i| TextBox::new(&rune::TextEdit::new("Ada Lovelace")).width(180.0).enabled(en).focused(i == 2).key(format!("t{i}")).view(t))),
+    ])
+}
+
+fn combobox_states(t: &Theme) -> El {
+    grid(t, "ComboBox", STATES, 180.0, vec![
+        ("Selected", Box::new(|en, i| ComboBox::new(["Blue", "Green"]).selected(Some(0)).width(180.0).enabled(en).key(format!("c{i}")).view(t))),
+        ("Placeholder", Box::new(|en, i| ComboBox::new(["Blue"]).placeholder("Pick a color").width(180.0).enabled(en).key(format!("d{i}")).view(t))),
+    ])
+}
+
+fn caption_states(t: &Theme) -> El {
+    grid(t, "Caption buttons", ["Rest", "PointerOver", "Pressed", "Inactive"], 150.0, vec![
+        ("Minimize", Box::new(|en, _| CaptionButtons::new().inactive(!en).button(t, CaptionKind::Minimize))),
+        ("Maximize", Box::new(|en, _| CaptionButtons::new().inactive(!en).button(t, CaptionKind::Maximize))),
+        ("Restore", Box::new(|en, _| CaptionButtons::new().maximized(true).inactive(!en).button(t, CaptionKind::Maximize))),
+        ("Close", Box::new(|en, _| CaptionButtons::new().inactive(!en).button(t, CaptionKind::Close))),
+    ])
+}
 
 fn init() -> State {
     State {
@@ -276,7 +377,15 @@ fn view(s: &State, cx: &mut Cx<State>) -> El {
     let k = t.tokens();
     let body = match s.scene {
         "selection" => selection(s, &t),
-        "slider" => slider(s, &t),
+        "slider" => col().gap(24.0).child(slider(s, &t)).child(slider_states(&t)),
+        "button" => button_states(&t),
+        "togglebutton" => togglebutton_states(&t),
+        "checkbox" => checkbox_states(&t),
+        "radiobutton" => radiobutton_states(&t),
+        "toggleswitch" => toggleswitch_states(&t),
+        "textbox" => textbox_states(&t),
+        "combobox" => combobox_states(&t),
+        "caption" => caption_states(&t),
         "colorpicker" => section(&t, "ColorPicker", ColorPicker::new(s.color.unwrap_or(t.accent().base)).on_change(|s: &mut State, c| s.color = Some(c)).view(&t)),
         "text" => text(s, &t),
         "menus" => menus(s, &t),
@@ -290,10 +399,13 @@ fn view(s: &State, cx: &mut Cx<State>) -> El {
         "people" => people(&t),
         _ => buttons(s, &t),
     };
+    // Mica base (`SolidBackgroundFillColorBase`) under the content `LayerFillColorDefault`,
+    // the same stack as Settings' content pane (#272727 dark / #F9F9F9 light).
+    let layer = k.layer_fill_color_default.over(k.solid_background_fill_color_base);
     col()
         .w_full()
         .h_full()
-        .fill(rc(k.solid_background_fill_color_base))
+        .fill(rc(layer))
         .padding(36.0)
         .gap(24.0)
         .child(rune::text(s.scene.to_owned()).font(style::font(t.type_ramp().title)).color(rc(k.text_fill_color_primary)))

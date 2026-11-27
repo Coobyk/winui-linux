@@ -6,7 +6,7 @@ use crate::impl_control;
 use crate::shim::icons::Symbol;
 use crate::shim::theme;
 use crate::shim::theme::{sizes, Theme};
-use crate::style::{self, focus_rect, glyph, layers, rc, Hook, R};
+use crate::style::{self, focus_rect, glyph, hover_layer, layers, layers3, pinned, rc, Hook, VisualState, R};
 
 /// Tri-state value (`IsThreeState`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
@@ -68,20 +68,13 @@ impl CheckBox {
         let k = t.tokens();
         let on = self.state != CheckState::Unchecked;
         let en = self.enabled;
-        let (rest, hover) = match (on, en) {
-            (false, true) => (
-                (k.control_alt_fill_color_secondary, Some(k.control_strong_stroke_color_default)),
-                (k.control_alt_fill_color_tertiary, Some(k.control_strong_stroke_color_default)),
-            ),
-            (false, false) => {
-                let d = (k.control_alt_fill_color_disabled, Some(k.control_strong_stroke_color_disabled));
-                (d, d)
-            }
-            (true, true) => ((k.accent_fill_color_default, None), (k.accent_fill_color_secondary, None)),
-            (true, false) => ((k.accent_fill_color_disabled, None), (k.accent_fill_color_disabled, None)),
+        let (rest, hover, pressed) = selector_fills(k, on, en);
+        let mark_c = match (en, pinned()) {
+            (false, _) => k.text_on_accent_fill_color_disabled,
+            (true, Some(VisualState::Pressed)) => k.text_on_accent_fill_color_secondary,
+            (true, _) => k.text_on_accent_fill_color_primary,
         };
-        let mark_c = if en { k.text_on_accent_fill_color_primary } else { k.text_on_accent_fill_color_disabled };
-        let mut bx = layers((20.0, 20.0), R, rest, hover).center();
+        let mut bx = layers3((20.0, 20.0), R, rest, hover, pressed).center();
         bx = match self.state {
             CheckState::Checked => bx.child(checkmark(mark_c)),
             CheckState::Indeterminate => bx.child(rune::el().size(8.0, 1.5).radius(1.0).fill(rc(mark_c))),
@@ -104,7 +97,7 @@ impl CheckBox {
             s => e.checked(s == CheckState::Checked),
         };
         if en {
-            e = focus_rect(e.press_color(rc(k.text_fill_color_secondary)), t, R);
+            e = focus_rect(e, t, R);
             e = self.toggle.attach(e, self.next());
         }
         match &self.key {
@@ -148,23 +141,24 @@ impl RadioButton {
         let k = t.tokens();
         let en = self.enabled;
         let c = 10.0;
-        let (rest, hover) = match (self.checked, en) {
-            (false, true) => (
-                (k.control_alt_fill_color_secondary, Some(k.control_strong_stroke_color_default)),
-                (k.control_alt_fill_color_tertiary, Some(k.control_strong_stroke_color_default)),
-            ),
-            (false, false) => {
-                let d = (k.control_alt_fill_color_disabled, Some(k.control_strong_stroke_color_disabled));
-                (d, d)
-            }
-            (true, true) => ((k.accent_fill_color_default, None), (k.accent_fill_color_secondary, None)),
-            (true, false) => ((k.accent_fill_color_disabled, None), (k.accent_fill_color_disabled, None)),
+        let (rest, hover, pressed) = selector_fills(k, self.checked, en);
+        let mut ring = layers3((20.0, 20.0), c, rest, hover, pressed).center();
+        // RadioButtonCheckGlyphSize 12 / PointerOverSize 14 / PressedOverSize 10, stroked with
+        // CircleElevationBorderBrush; an unchecked radio shows the 10px glyph while pressed.
+        let dot = if en { k.text_on_accent_fill_color_primary } else { k.text_on_accent_fill_color_disabled };
+        let d = |size: f32| {
+            let g = &k.circle_elevation_border;
+            rune::el()
+                .absolute((20.0 - size) / 2.0, (20.0 - size) / 2.0)
+                .size(size, size)
+                .radius(size / 2.0)
+                .fill(rc(dot))
+                .border_gradient(1.0, rc(g.top(size)), rc(g.bottom(size)))
         };
-        let mut ring = layers((20.0, 20.0), c, rest, hover).center();
-        if self.checked {
-            let dot = if en { k.text_on_accent_fill_color_primary } else { k.text_on_accent_fill_color_disabled };
-            let d = |size: f32| rune::el().absolute((20.0 - size) / 2.0, (20.0 - size) / 2.0).size(size, size).radius(size / 2.0).fill(rc(dot));
-            ring = ring.child(d(12.0).group_opacity(1.0, 0.0)).child(d(14.0).group_opacity(0.0, 1.0));
+        match (self.checked, en && pinned() == Some(VisualState::Pressed)) {
+            (_, true) => ring = ring.child(d(10.0)),
+            (true, false) => ring = ring.child(hover_layer(d(12.0), 1.0, 0.0)).child(hover_layer(d(14.0), 0.0, 1.0)),
+            (false, false) => {}
         }
         let fg = if en { k.text_fill_color_primary } else { k.text_fill_color_disabled };
         let mut e = row()
@@ -180,7 +174,7 @@ impl RadioButton {
             .checked(self.checked)
             .disabled(!en);
         if en {
-            e = focus_rect(e.press_color(rc(k.text_fill_color_secondary)), t, R);
+            e = focus_rect(e, t, R);
             e = self.select.attach(e, ());
         }
         match &self.key {
@@ -298,26 +292,37 @@ impl ToggleSwitch {
     pub fn view(&self, t: &Theme) -> El {
         let k = t.tokens();
         let en = self.enabled;
-        let (rest, hover, knob) = match (self.on, en) {
-            (false, true) => (
-                (k.control_alt_fill_color_secondary, Some(k.control_strong_stroke_color_default)),
-                (k.control_alt_fill_color_tertiary, Some(k.control_strong_stroke_color_default)),
-                k.text_fill_color_secondary,
-            ),
-            (false, false) => {
-                let d = (k.control_alt_fill_color_disabled, Some(k.control_strong_stroke_color_disabled));
-                (d, d, k.text_fill_color_disabled)
+        // ToggleSwitchFill/Stroke{Off,On}{,PointerOver,Pressed,Disabled}.
+        let (rest, hover, mut pressed) = selector_fills(k, self.on, en);
+        if !self.on && en {
+            pressed.1 = Some(k.control_strong_stroke_color_default);
+        }
+        let knob = match (self.on, en) {
+            (false, true) => k.text_fill_color_secondary,
+            (false, false) => k.text_fill_color_disabled,
+            (true, true) => k.text_on_accent_fill_color_primary,
+            (true, false) => k.text_on_accent_fill_color_disabled,
+        };
+        // SwitchKnob: 12x12 at rest, 14x14 PointerOver, 17x14 Pressed (stretching away
+        // from the edge it is parked at).
+        let knob_at = |w: f32, h: f32| {
+            let inset = 4.0 - (h - 12.0) / 2.0;
+            let x = if self.on { 40.0 - inset - w } else { inset };
+            let e = rune::el().absolute(x, (20.0 - h) / 2.0).size(w, h).radius(h / 2.0).fill(rc(knob));
+            if self.on && en {
+                let g = &k.circle_elevation_border;
+                e.border_gradient(1.0, rc(g.top(h)), rc(g.bottom(h)))
+            } else {
+                e
             }
-            (true, true) => ((k.accent_fill_color_default, None), (k.accent_fill_color_secondary, None), k.text_on_accent_fill_color_primary),
-            (true, false) => ((k.accent_fill_color_disabled, None), (k.accent_fill_color_disabled, None), k.text_on_accent_fill_color_disabled),
         };
-        let knob_at = |size: f32| {
-            let x = if self.on { 40.0 - 4.0 - size + (size - 12.0) / 2.0 } else { 4.0 - (size - 12.0) / 2.0 };
-            rune::el().absolute(x, (20.0 - size) / 2.0).size(size, size).radius(size / 2.0).fill(rc(knob))
+        let track = if en && pinned() == Some(VisualState::Pressed) {
+            layers3((40.0, 20.0), 10.0, rest, hover, pressed).child(knob_at(17.0, 14.0))
+        } else {
+            layers((40.0, 20.0), 10.0, rest, hover)
+                .child(hover_layer(knob_at(12.0, 12.0), 1.0, 0.0))
+                .child(hover_layer(knob_at(14.0, 14.0), 0.0, 1.0))
         };
-        let track = layers((40.0, 20.0), 10.0, rest, hover)
-            .child(knob_at(12.0).group_opacity(1.0, 0.0))
-            .child(knob_at(14.0).group_opacity(0.0, 1.0));
         let fg = if en { k.text_fill_color_primary } else { k.text_fill_color_disabled };
         let content = if self.on { &self.on_content } else { &self.off_content };
         let mut sw = row()
@@ -421,3 +426,30 @@ pub(crate) fn checkmark(c: theme::Color) -> El {
 }
 
 impl_control!(CheckBox, RadioButton, RadioButtons, ToggleSwitch, RatingControl);
+
+/// Box/ring/track fill + stroke for (Rest, PointerOver, Pressed) of CheckBox, RadioButton
+/// and ToggleSwitch, which share `ControlAltFillColor*` + `ControlStrongStroke*` off and
+/// `AccentFillColor*` on.
+type Layer = (theme::Color, Option<theme::Color>);
+fn selector_fills(k: &crate::shim::theme::Tokens, on: bool, en: bool) -> (Layer, Layer, Layer) {
+    match (on, en) {
+        (false, true) => (
+            (k.control_alt_fill_color_secondary, Some(k.control_strong_stroke_color_default)),
+            (k.control_alt_fill_color_tertiary, Some(k.control_strong_stroke_color_default)),
+            (k.control_alt_fill_color_quarternary, Some(k.control_strong_stroke_color_disabled)),
+        ),
+        (false, false) => {
+            let d = (k.control_alt_fill_color_disabled, Some(k.control_strong_stroke_color_disabled));
+            (d, d, d)
+        }
+        (true, true) => (
+            (k.accent_fill_color_default, None),
+            (k.accent_fill_color_secondary, None),
+            (k.accent_fill_color_tertiary, None),
+        ),
+        (true, false) => {
+            let d = (k.accent_fill_color_disabled, None);
+            (d, d, d)
+        }
+    }
+}

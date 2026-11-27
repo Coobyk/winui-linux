@@ -394,4 +394,88 @@ impl SplitButton {
     }
 }
 
-impl_control!(Button, HyperlinkButton, ToggleButton, RepeatButton, DropDownButton, SplitButton);
+/// Which caption button: minimize, maximize/restore or close.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CaptionKind {
+    Minimize,
+    Maximize,
+    Close,
+}
+
+/// The Windows 11 title-bar caption buttons (46x32): subtle fill on hover, `#C42B1C` with a
+/// white glyph for Close (`Theme::caption_buttons`).
+#[derive(Clone, Default)]
+pub struct CaptionButtons {
+    maximized: bool,
+    inactive: bool,
+    press: Hook<CaptionKind>,
+}
+
+impl CaptionButtons {
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Shows the restore glyph on the middle button.
+    pub fn maximized(mut self, on: bool) -> Self {
+        self.maximized = on;
+        self
+    }
+    /// Window inactive: glyphs drop to `TextFillColorDisabled`.
+    pub fn inactive(mut self, on: bool) -> Self {
+        self.inactive = on;
+        self
+    }
+    pub fn on_press<S: 'static>(mut self, f: impl Fn(&mut S, CaptionKind) + 'static) -> Self {
+        self.press.press(f);
+        self
+    }
+
+    /// One caption button.
+    pub fn button(&self, t: &Theme, kind: CaptionKind) -> El {
+        let c = t.caption_buttons();
+        let close = kind == CaptionKind::Close;
+        let (hover, pressed) = if close { (c.close_fill_pointer_over, c.close_fill_pressed) } else { (c.fill_pointer_over, c.fill_pressed) };
+        let rest_fg = if self.inactive { c.foreground_inactive } else { c.foreground };
+        let (hover_fg, pressed_fg) = if close { (c.close_foreground_pointer_over, c.close_foreground_pressed) } else { (c.foreground, c.foreground_pressed) };
+        let fg = style::by_state(rest_fg, hover_fg, pressed_fg);
+        let icon = match kind {
+            CaptionKind::Minimize => rune::el().size(10.0, 1.0).fill(rc(fg)),
+            CaptionKind::Maximize if self.maximized => rune::el()
+                .size(10.0, 10.0)
+                .child(rune::el().absolute(2.0, 0.0).size(8.0, 8.0).radius(1.5).border(1.0, rc(fg)))
+                .child(rune::el().absolute(0.0, 2.0).size(8.0, 8.0).radius(1.5).fill(rc(t.tokens().solid_background_fill_color_base)).border(1.0, rc(fg))),
+            CaptionKind::Maximize => rune::el().size(10.0, 10.0).radius(1.5).border(1.0, rc(fg)),
+            CaptionKind::Close if style::pinned().is_none() => rune::el()
+                .size(12.0, 12.0)
+                .child(style::hover_layer(glyph(Symbol::Dismiss, 12.0, rest_fg).absolute(0.0, 0.0), 1.0, 0.0))
+                .child(style::hover_layer(glyph(Symbol::Dismiss, 12.0, hover_fg).absolute(0.0, 0.0), 0.0, 1.0)),
+            CaptionKind::Close => glyph(Symbol::Dismiss, 12.0, fg),
+        };
+        let label = match kind {
+            CaptionKind::Minimize => "Minimize",
+            CaptionKind::Maximize if self.maximized => "Restore",
+            CaptionKind::Maximize => "Maximize",
+            CaptionKind::Close => "Close",
+        };
+        let base = style::by_state(t.tokens().subtle_fill_color_transparent, hover, pressed);
+        let mut e = rune::el().size(46.0, 32.0).center().fill(rc(base)).child(icon).role("button").label(label);
+        if style::pinned().is_none() {
+            e = e.hover_fill(rc(hover)).press_fill(rc(pressed));
+            if close {
+                e = e.hover_group();
+                e = e.press_color(rc(pressed_fg));
+            }
+            e = self.press.attach(e, kind);
+        }
+        e
+    }
+
+    pub fn view(&self, t: &Theme) -> El {
+        row()
+            .child(self.button(t, CaptionKind::Minimize))
+            .child(self.button(t, CaptionKind::Maximize))
+            .child(self.button(t, CaptionKind::Close))
+    }
+}
+
+impl_control!(Button, HyperlinkButton, ToggleButton, RepeatButton, DropDownButton, SplitButton, CaptionButtons);

@@ -1,12 +1,58 @@
 //! Shared Fluent recipes: colour conversion, the type ramp as Rune text styles, focus visuals,
 //! glyphs and the Rest/PointerOver/Pressed/Disabled fill sets every control resolves from
 //! `Theme::tokens()`.
+use std::cell::Cell;
 use std::rc::Rc;
 
 use rune::{El, Shape, TextStyle};
 
 use crate::shim::icons::{self, Glyph, Symbol};
 use crate::shim::theme::{self, radii, Theme, Tokens};
+
+/// A WinUI `CommonStates` visual state that can be pinned for state galleries and
+/// snapshots (`VisualStateManager.GoToState`). `Disabled` is `enabled(false)` on each control.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum VisualState {
+    Rest,
+    PointerOver,
+    Pressed,
+}
+
+thread_local! {
+    static PINNED: Cell<Option<VisualState>> = const { Cell::new(None) };
+}
+
+/// Builds `f` with every control's interactive state frozen to `s`: views resolve their
+/// PointerOver / Pressed brushes statically instead of attaching hover and press hooks.
+pub fn with_visual_state<R>(s: VisualState, f: impl FnOnce() -> R) -> R {
+    let prev = PINNED.with(|p| p.replace(Some(s)));
+    let r = f();
+    PINNED.with(|p| p.set(prev));
+    r
+}
+
+/// The state pinned by [`with_visual_state`], if any.
+pub fn pinned() -> Option<VisualState> {
+    PINNED.with(|p| p.get())
+}
+
+/// `rest` / `hover` / `pressed` by the pinned state (`rest` when live).
+pub fn by_state<T>(rest: T, hover: T, pressed: T) -> T {
+    match pinned() {
+        Some(VisualState::PointerOver) => hover,
+        Some(VisualState::Pressed) => pressed,
+        _ => rest,
+    }
+}
+
+/// `group_opacity(rest, hover)` honouring a pinned state (Pressed shows the hover layer).
+pub fn hover_layer(e: El, rest: f32, hover: f32) -> El {
+    match pinned() {
+        None => e.group_opacity(rest, hover),
+        Some(VisualState::Rest) => e.opacity(rest),
+        Some(_) => e.opacity(hover),
+    }
+}
 
 /// `winui_theme::Color` (sRGB) to Rune's linear colour.
 pub fn rc(c: theme::Color) -> rune::Color {
@@ -55,7 +101,7 @@ pub struct StateSet {
 
 impl StateSet {
     pub fn pick(&self, enabled: bool) -> theme::Color {
-        if enabled { self.rest } else { self.disabled }
+        if enabled { by_state(self.rest, self.hover, self.pressed) } else { self.disabled }
     }
 }
 
@@ -83,6 +129,19 @@ pub struct Recipe {
     pub fill: StateSet,
     pub fg: StateSet,
     pub border: Option<Elevation>,
+    /// `BackgroundSizing="InnerBorderEdge"`: the stroke composites over the parent, not the
+    /// fill (`DefaultButtonStyle`; `AccentButtonStyle` is `OuterBorderEdge`).
+    pub inner_edge: bool,
+}
+
+/// The stroke that, drawn over `fill`, lands on the same pixel as `stroke` drawn straight over
+/// the parent — exact for any parent when both share an RGB (Dark's white-alpha ramps).
+pub fn inner_edge(stroke: theme::Color, fill: theme::Color) -> theme::Color {
+    let same = (stroke.r - fill.r).abs() < 1e-3 && (stroke.g - fill.g).abs() < 1e-3 && (stroke.b - fill.b).abs() < 1e-3;
+    if !same || fill.a <= 0.0 || fill.a >= 1.0 {
+        return stroke;
+    }
+    stroke.with_alpha(((stroke.a - fill.a) / (1.0 - fill.a)).max(0.0))
 }
 
 impl Recipe {
@@ -103,6 +162,7 @@ impl Recipe {
             },
             // ButtonBorderBrush / ButtonBorderBrushPressed / ButtonBorderBrushDisabled.
             border: Some(Elevation::new(&k.control_elevation_border, k.control_fill_color_transparent, k.control_stroke_color_default)),
+            inner_edge: true,
         }
     }
 
@@ -123,6 +183,7 @@ impl Recipe {
             },
             // AccentButtonBorderBrush / AccentButtonBorderBrushPressed / AccentButtonBorderBrushDisabled.
             border: Some(Elevation::new(&k.accent_control_elevation_border, k.control_fill_color_transparent, k.control_fill_color_transparent)),
+            inner_edge: false,
         }
     }
 
@@ -142,17 +203,31 @@ impl Recipe {
                 disabled: k.text_fill_color_disabled,
             },
             border: None,
+            inner_edge: false,
         }
     }
 
     /// Paints `e` as this recipe: rest fill and border, plus hover/press fills and the press
     /// foreground when `enabled`; the disabled set otherwise.
     pub fn paint(&self, e: El, enabled: bool) -> El {
-        let mut e = e.fill(rc(self.fill.pick(enabled)));
-        if let Some(b) = self.border {
-            e = if enabled { e.border_gradient(1.0, rc(b.top), rc(b.bottom)) } else { e.border(1.0, rc(b.flat)) };
+        let fill = self.fill.pick(enabled);
+        let mut e = e.fill(rc(fill));
+        if let Some(mut b) = self.border {
+            if self.inner_edge {
+                b = Elevation {
+                    top: inner_edge(b.top, fill),
+                    bottom: inner_edge(b.bottom, fill),
+                    pressed: inner_edge(b.pressed, fill),
+                    flat: inner_edge(b.flat, fill),
+                };
+            }
+            e = match (enabled, pinned()) {
+                (false, _) => e.border(1.0, rc(b.flat)),
+                (true, Some(VisualState::Pressed)) => e.border(1.0, rc(b.pressed)),
+                (true, _) => e.border_gradient(1.0, rc(b.top), rc(b.bottom)),
+            };
         }
-        if enabled {
+        if enabled && pinned().is_none() {
             e = e
                 .hover_fill(rc(self.fill.hover))
                 .press_fill(rc(self.fill.pressed))
@@ -274,6 +349,21 @@ pub fn layers(size: (f32, f32), radius: f32, rest: (theme::Color, Option<theme::
     };
     rune::el()
         .size(size.0, size.1)
-        .child(layer(rest).group_opacity(1.0, 0.0))
-        .child(layer(hover).group_opacity(0.0, 1.0))
+        .child(hover_layer(layer(rest), 1.0, 0.0))
+        .child(hover_layer(layer(hover), 0.0, 1.0))
+}
+
+/// [`layers`] plus the Pressed fill/stroke, shown when Pressed is pinned. Live presses keep
+/// the PointerOver layer: Rune's press hooks restyle only the pressed element, not children.
+pub fn layers3(
+    size: (f32, f32),
+    radius: f32,
+    rest: (theme::Color, Option<theme::Color>),
+    hover: (theme::Color, Option<theme::Color>),
+    pressed: (theme::Color, Option<theme::Color>),
+) -> El {
+    match pinned() {
+        Some(VisualState::Pressed) => layers(size, radius, pressed, pressed),
+        _ => layers(size, radius, rest, hover),
+    }
 }
