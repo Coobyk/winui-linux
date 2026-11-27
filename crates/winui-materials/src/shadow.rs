@@ -59,7 +59,6 @@ impl DropShadowRecipe {
 
     /// Both layers as Rune box shadows, ambient first. Zero-opacity layers are dropped.
     pub fn shadows(&self) -> Vec<Shadow> {
-        let black = |a: f32| crate::rc(Color::rgba(0, 0, 0, a));
         [
             (
                 self.ambient_y_offset,
@@ -74,14 +73,7 @@ impl DropShadowRecipe {
         ]
         .into_iter()
         .filter(|&(_, _, a)| a > 0.0)
-        .map(|(y, blur, a)| Shadow {
-            x: 0.0,
-            y,
-            blur,
-            spread: 0.0,
-            color: black(a),
-            inset: false,
-        })
+        .map(|(y, blur, a)| layer(y, blur, a))
         .collect()
     }
 }
@@ -120,5 +112,38 @@ pub trait MaterialExt {
 impl MaterialExt for El {
     fn theme_shadow(self, theme: &Theme, depth: f32) -> Self {
         shadow(depth).apply(self, theme)
+    }
+}
+
+/// The directional (key) layer of `ThemeShadow` at Z `depth`, for a single `box_shadow`;
+/// transparent when the recipe has none (Z < 4).
+pub fn elevation(theme: &Theme, depth: f32) -> Shadow {
+    let r = shadow(depth).recipe(theme.mode());
+    layer(
+        r.directional_y_offset,
+        r.directional_blur_radius,
+        r.directional_opacity,
+    )
+}
+
+/// The ambient layer of `ThemeShadow` at Z `depth` (transparent up to Z 32).
+pub fn ambient(theme: &Theme, depth: f32) -> Shadow {
+    let r = shadow(depth).recipe(theme.mode());
+    layer(r.ambient_y_offset, r.ambient_blur_radius, r.ambient_opacity)
+}
+
+/// `content` rounded to `radius` and casting the full `ThemeShadow` at Z `depth`.
+pub fn card_shadow(theme: &Theme, depth: f32, radius: f32, content: El) -> El {
+    content.radius(radius).theme_shadow(theme, depth)
+}
+
+fn layer(y: f32, blur: f32, a: f32) -> Shadow {
+    Shadow {
+        x: 0.0,
+        y,
+        blur,
+        spread: 0.0,
+        color: crate::rc(Color::rgba(0, 0, 0, a)),
+        inset: false,
     }
 }

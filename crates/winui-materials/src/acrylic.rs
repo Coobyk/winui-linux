@@ -214,6 +214,7 @@ impl AcrylicBrush {
 pub(crate) fn full(radius: f32) -> El {
     el().pin(Some(0.0), Some(0.0), Some(0.0), Some(0.0))
         .radius(radius)
+        .inert()
 }
 
 /// The theme's default Acrylic (`AcrylicBackgroundFillColorDefaultBrush`).

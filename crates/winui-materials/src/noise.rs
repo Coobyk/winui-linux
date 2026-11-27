@@ -78,5 +78,6 @@ pub fn noise_layer(radius: f32) -> El {
             .radius(radius)
             .pixels_tile(px, [NOISE_SIZE as f32, NOISE_SIZE as f32])
             .opacity(NOISE_OPACITY)
+            .inert()
     })
 }

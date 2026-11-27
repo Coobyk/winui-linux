@@ -32,7 +32,13 @@ pub use blend::{blend_color, blend_luminosity, lum, set_lum};
 pub use mica::{MicaBrush, MicaKind, mica, mica_alt, mica_brush};
 pub use noise::{NOISE_LEVELS, NOISE_OPACITY, NOISE_SIZE, noise_layer, noise_pixels, noise_tile};
 pub use reveal::{Reveal, RevealLight, reveal, reveal_with_colors};
-pub use shadow::{DropShadowRecipe, MaterialExt, THEME_SHADOW_DEPTHS, ThemeShadow, shadow};
+pub use shadow::{
+    DropShadowRecipe, MaterialExt, THEME_SHADOW_DEPTHS, ThemeShadow, ambient, card_shadow,
+    elevation, shadow,
+};
+
+use rune::El;
+use winui_theme::{Theme, Tokens};
 
 /// `winui_theme::Color` (sRGB-encoded, straight alpha) → `rune::Color` (linear sRGB, straight
 /// alpha). Rune blends in sRGB space by default, matching XAML.
@@ -50,4 +56,59 @@ pub fn rc(c: winui_theme::Color) -> rune::Color {
         b: decode(c.b),
         a: c.a,
     }
+}
+
+/// `rune::Color` (linear) → `winui_theme::Color` (sRGB-encoded).
+pub fn tc(c: rune::Color) -> winui_theme::Color {
+    fn encode(v: f32) -> f32 {
+        if v <= 0.003_130_8 {
+            v * 12.92
+        } else {
+            1.055 * v.powf(1.0 / 2.4) - 0.055
+        }
+    }
+    winui_theme::Color {
+        r: encode(c.r),
+        g: encode(c.g),
+        b: encode(c.b),
+        a: c.a,
+    }
+}
+
+/// The theme's tokens.
+pub fn tokens(theme: &Theme) -> &Tokens {
+    theme.tokens()
+}
+
+/// The noise tile filling its parent at `alpha` opacity (Acrylic uses [`NOISE_OPACITY`]).
+pub fn noise_overlay(alpha: f32) -> El {
+    noise_layer(0.0).opacity(alpha)
+}
+
+/// NavigationView expanded-pane background, `AcrylicInAppFillColorDefaultBrush` (same values
+/// as `AcrylicBackgroundFillColorDefaultBrush`), filling its parent.
+pub fn nav_acrylic(theme: &Theme) -> El {
+    AcrylicBrush::background_default(theme)
+        .el()
+        .key("nav-acrylic")
+        .w_full()
+        .h_full()
+}
+
+/// Resting reveal hairline for list rows: `ControlStrokeColorSecondary` fading downwards.
+pub fn reveal_border(theme: &Theme, radius: f32) -> El {
+    let stroke = rc(theme.tokens().control_stroke_color_secondary);
+    rune::el()
+        .key("reveal-border")
+        .w_full()
+        .h_full()
+        .radius(radius)
+        .border_gradient(1.0, stroke, stroke.alpha(0.0))
+        .inert()
+}
+
+/// Pointer-over fill for list/nav items: `SubtleFillColorSecondary` (WinUI 3's replacement
+/// for the Reveal background brushes).
+pub fn reveal_fill(theme: &Theme) -> rune::Color {
+    rc(theme.tokens().subtle_fill_color_secondary)
 }

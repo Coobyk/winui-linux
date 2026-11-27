@@ -77,7 +77,11 @@ impl MicaBrush {
 }
 
 fn surface(fill: rune::Color) -> El {
-    el().fill(fill).child(noise_layer(0.0))
+    el().key("mica")
+        .w_full()
+        .h_full()
+        .fill(fill)
+        .child(noise_layer(0.0))
 }
 
 /// The theme's Mica parameters.
