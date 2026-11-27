@@ -246,3 +246,20 @@ pub fn card(t: &Theme) -> El {
         .border(1.0, rc(k.card_stroke_color_default))
         .radius(R)
 }
+
+/// Rest and hover fills as two stacked layers: the hover one shows while the nearest
+/// `hover_group` ancestor (the whole control, label included) is hovered, as WinUI's
+/// `PointerOver` visual state covers the full hit target.
+pub fn layers(size: (f32, f32), radius: f32, rest: (theme::Color, Option<theme::Color>), hover: (theme::Color, Option<theme::Color>)) -> El {
+    let layer = |(fill, stroke): (theme::Color, Option<theme::Color>)| {
+        let e = rune::el().absolute(0.0, 0.0).size(size.0, size.1).radius(radius).fill(rc(fill));
+        match stroke {
+            Some(s) => e.border(1.0, rc(s)),
+            None => e,
+        }
+    };
+    rune::el()
+        .size(size.0, size.1)
+        .child(layer(rest).group_opacity(1.0, 0.0))
+        .child(layer(hover).group_opacity(0.0, 1.0))
+}
