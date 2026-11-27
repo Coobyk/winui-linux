@@ -10,7 +10,7 @@ pub enum ThemeMode {
 }
 
 /// One sRGBA colour (straight alpha, sRGB-encoded channels).
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct Color {
     pub r: f32,
     pub g: f32,
