@@ -112,15 +112,23 @@ impl HyperlinkButton {
     }
     pub fn view(&self, t: &Theme) -> El {
         let k = t.tokens();
-        let fg = if self.enabled { k.accent_text_fill_color_primary } else { k.accent_text_fill_color_disabled };
-        let text = rune::text(self.label.clone())
-            .font(style::body(t))
-            .color(rc(fg))
-            .group_color(rc(k.accent_text_fill_color_secondary));
+        let live = self.enabled && style::pinned().is_none();
+        let fg = if self.enabled {
+            style::by_state(k.accent_text_fill_color_primary, k.accent_text_fill_color_secondary, k.accent_text_fill_color_tertiary)
+        } else {
+            k.accent_text_fill_color_disabled
+        };
+        let mut text = rune::text(self.label.clone()).font(style::body(t)).color(rc(fg));
+        if live {
+            text = text.group_color(rc(k.accent_text_fill_color_secondary));
+        }
         let mut e = row().h(sizes::CONTROL_HEIGHT).px(11.0).pb(1.0).center().radius(R).child(text);
         e = Recipe::subtle(k).paint(e, self.enabled).role("link").label(self.label.clone()).disabled(!self.enabled);
         if self.enabled {
-            e = focus_rect(e.hover_group().press_color(rc(k.accent_text_fill_color_tertiary)), t, R);
+            if live {
+                e = e.hover_group().press_color(rc(k.accent_text_fill_color_tertiary));
+            }
+            e = focus_rect(e, t, R);
             e = self.press.attach(e, ());
         }
         keyed(e, &self.key)
@@ -355,7 +363,7 @@ impl SplitButton {
         let fg = recipe.fg(self.enabled);
         let part = |e: El| {
             let e = e.h(sizes::CONTROL_HEIGHT).center().fill(rc(recipe.fill.pick(self.enabled)));
-            if self.enabled {
+            if self.enabled && style::pinned().is_none() {
                 let e = e.hover_fill(rc(recipe.fill.hover)).press_fill(rc(recipe.fill.pressed)).press_color(rc(recipe.fg.pressed));
                 focus_rect(e, t, R)
             } else {
