@@ -59,12 +59,22 @@ impl StateSet {
     }
 }
 
-/// The control's elevation border (`ControlElevationBorderBrush`): darker bottom edge at rest.
+/// The control's elevation border (`ControlElevationBorderBrush` /
+/// `AccentControlElevationBorderBrush`) sampled at the 32px control height, plus the solid
+/// `*BorderBrushPressed` and `*BorderBrushDisabled` strokes.
 #[derive(Clone, Copy, Debug)]
 pub struct Elevation {
     pub top: theme::Color,
     pub bottom: theme::Color,
+    pub pressed: theme::Color,
     pub flat: theme::Color,
+}
+
+impl Elevation {
+    fn new(g: &theme::LinearGradient, pressed: theme::Color, disabled: theme::Color) -> Self {
+        let h = theme::sizes::CONTROL_HEIGHT;
+        Elevation { top: g.top(h), bottom: g.bottom(h), pressed, flat: disabled }
+    }
 }
 
 /// Fill + stroke + foreground recipe for a WinUI button-like surface.
@@ -91,11 +101,8 @@ impl Recipe {
                 pressed: k.text_fill_color_secondary,
                 disabled: k.text_fill_color_disabled,
             },
-            border: Some(Elevation {
-                top: k.control_stroke_color_default,
-                bottom: k.control_stroke_color_secondary,
-                flat: k.control_stroke_color_default,
-            }),
+            // ButtonBorderBrush / ButtonBorderBrushPressed / ButtonBorderBrushDisabled.
+            border: Some(Elevation::new(&k.control_elevation_border, k.control_fill_color_transparent, k.control_stroke_color_default)),
         }
     }
 
@@ -114,11 +121,8 @@ impl Recipe {
                 pressed: k.text_on_accent_fill_color_secondary,
                 disabled: k.text_on_accent_fill_color_disabled,
             },
-            border: Some(Elevation {
-                top: k.control_stroke_color_on_accent_default,
-                bottom: k.control_stroke_color_on_accent_secondary,
-                flat: k.control_fill_color_transparent,
-            }),
+            // AccentButtonBorderBrush / AccentButtonBorderBrushPressed / AccentButtonBorderBrushDisabled.
+            border: Some(Elevation::new(&k.accent_control_elevation_border, k.control_fill_color_transparent, k.control_fill_color_transparent)),
         }
     }
 
@@ -154,7 +158,7 @@ impl Recipe {
                 .press_fill(rc(self.fill.pressed))
                 .press_color(rc(self.fg.pressed));
             if let Some(b) = self.border {
-                e = e.press_border(rc(b.flat));
+                e = e.press_border(rc(b.pressed));
             }
         }
         e
