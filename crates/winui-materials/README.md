@@ -15,7 +15,7 @@ Every returned value is a plain `rune::El`: size it and add children as usual.
 
 ```rust
 let theme = Theme::dark();
-let pane = Acrylic::in_app_default(&theme).el().w(320.0).h_full().radius(8.0).child(items);
+let pane = Acrylic::in_app_default(&theme).radius(8.0).el().w(320.0).h_full().child(items);
 let row = reveal(&theme, &state.rows[i]).w_full().h(40.0).child(text("Home"));
 let card = el().radius(8.0).fill(white).elevation(8.0, theme.mode());
 ```
@@ -40,4 +40,9 @@ cargo run -p winui-materials --example demo -- --scene mica|acrylic|reveal|shado
   source-over onto the blurred backdrop. Colourful backdrops keep slightly less hue than on Windows.
 - Accent Acrylic tints with `AccentFillColorDefault` rather than WinUI's `SystemAccentColorDark1`/`Light3`.
 - Reveal's light switches on/off instantly; WinUI fades the hover light in over 166 ms.
-- `reveal(...)` owns its element's hover handler: add your own with `chain_hover_change_any`, since `on_hover_change*` replaces the one that turns the light off.
+- `reveal(...)` owns its element's layout, pointer-move and hover handlers; `on_layout*`,
+  `on_pointer_move*` or `on_hover_change*` on it would replace Reveal's (stale size, light not
+  following the pointer, or never turning off). Wrap it instead, or add hover handling with
+  `chain_hover_change_any`.
+- Round Acrylic with `Acrylic::radius` before `.el()`: `.radius` on the element leaves the
+  noise layer square.
