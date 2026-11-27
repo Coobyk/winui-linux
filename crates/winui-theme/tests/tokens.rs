@@ -22,9 +22,9 @@ fn dark_values_match_winui() {
     assert_eq!(hex(k.system_fill_color_success), "#FF6CCB5F");
     assert_eq!(hex(k.system_fill_color_caution), "#FFFCE100");
     assert_eq!(hex(k.system_fill_color_critical), "#FFFF99A4");
-    assert_eq!(hex(k.accent_fill_color_default), "#FF60CDFF");
+    assert_eq!(hex(k.accent_fill_color_default), "#FF4CC2FF");
     assert_eq!(hex(k.accent_text_fill_color_primary), "#FF99EBFF");
-    assert_eq!(hex(k.system_fill_color_attention), "#FF60CDFF");
+    assert_eq!(hex(k.system_fill_color_attention), "#FF4CC2FF");
     assert_eq!(
         k.accent_fill_color_secondary.to_rgba8()[3],
         (0.9f32 * 255.0).round() as u8

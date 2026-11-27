@@ -28,7 +28,7 @@ Key facts every owner should respect:
 - Font: Segoe UI Variable Text; fall back to a metric-compatible sans
   (Inter is acceptable). Type ramp: Caption 12, Body 14, Subtitle 20,
   Title 28, TitleLarge 40, Display 68.
-- Default accent `#0078D4` (light) / `#60CDFF`-ish (dark) — take the real
+- Default accent `#0078D4` (light) / `#4CC2FF` (dark) — take the real
   values from the theme resources, plus the full accent ramp.
 - Control states: Rest / PointerOver / Pressed / Disabled (+ Focus visuals
   as a 2px accent or ThemeSettings-dependent focus rect).
