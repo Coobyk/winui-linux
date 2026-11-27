@@ -1,0 +1,6 @@
+[package]
+name = "winui-icons"
+edition.workspace = true
+license.workspace = true
+
+[dependencies]

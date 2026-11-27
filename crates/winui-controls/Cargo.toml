@@ -1,0 +1,10 @@
+[package]
+name = "winui-controls"
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+rune.workspace = true
+winui-theme = { path = "../winui-theme" }
+winui-icons = { path = "../winui-icons" }
+winui-materials = { path = "../winui-materials" }

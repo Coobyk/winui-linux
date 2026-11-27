@@ -1,0 +1,3 @@
+# winui-theme
+
+See [../docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md).
