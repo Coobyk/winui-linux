@@ -3,7 +3,7 @@
 use rune::{El, TextStyle, el, row, text};
 use winui_controls::style::rc;
 use winui_icons::Symbol;
-use winui_theme::{Color, Theme, radii};
+use winui_theme::{Color, Theme, ThemeMode, radii};
 
 use super::{caption_buttons, icon, label};
 
@@ -12,6 +12,8 @@ const BG: u32 = 0xFF0C0C0C;
 const FG: u32 = 0xFFCCCCCC;
 
 pub fn view(t: &Theme) -> El {
+    // Windows Terminal keeps its dark chrome and Campbell scheme whatever the app theme.
+    let t = &Theme::new(ThemeMode::Dark, *t.accent());
     let k = t.tokens();
     let ramp = t.type_ramp();
     let ps = el()
