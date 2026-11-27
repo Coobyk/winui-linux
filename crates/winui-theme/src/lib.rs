@@ -11,6 +11,7 @@
 //! ```
 
 mod accent;
+mod chrome;
 mod color;
 mod gradient;
 mod metrics;
@@ -19,6 +20,7 @@ mod tokens;
 mod typography;
 
 pub use accent::AccentRamp;
+pub use chrome::{acrylic_fallback, CaptionColors, CAPTION_CLOSE_RED, CAPTION_CLOSE_RED_LEGACY};
 pub use color::Color;
 pub use gradient::{GradientMapping, LinearGradient};
 pub use metrics::{Thickness, motion, radii, sizes, spacing};

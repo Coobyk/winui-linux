@@ -66,6 +66,16 @@ impl Theme {
         &self.accent
     }
 
+    /// Caption (title-bar) button colours for this theme.
+    pub fn caption_buttons(&self) -> crate::chrome::CaptionColors {
+        crate::chrome::CaptionColors::resolve(&self.tokens)
+    }
+
+    /// Solid fallback of the default acrylic brush (flyouts, menus, nav pane).
+    pub fn acrylic_fallback(&self) -> Color {
+        crate::chrome::acrylic_fallback(self.mode)
+    }
+
     pub fn type_ramp(&self) -> &TypeRamp {
         &self.type_ramp
     }
