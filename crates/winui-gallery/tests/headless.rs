@@ -22,7 +22,9 @@ fn click(rt: &mut rune::runtime::Runtime<State>, key: &str) {
     let (x, y) = rt.find(key).unwrap_or_else(|| panic!("no element {key}"));
     rt.pointer_down(x, y);
     rt.pointer_up(x, y);
+    // Settle enter/exit transitions so the next lookup sees the new layout.
     rt.frame(0.0);
+    rt.frame(1.0);
 }
 
 #[test]
