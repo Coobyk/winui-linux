@@ -404,7 +404,7 @@ const FONTS: &[&[u8]] = &[
 ];
 
 /// The app replica `--scene <id>` selects (Rune reads the last `--scene`). Replicas have
-/// fixed screenshot layouts, so their window minimum is the reference size.
+/// their own window minimum (`App::min_size`).
 fn app_scene() -> Option<apps::App> {
     let args: Vec<_> = std::env::args_os().collect();
     let id = args.windows(2).filter(|w| w[0] == "--scene").last()?[1]
@@ -425,7 +425,7 @@ pub fn spec() -> AppSpec<State> {
         ],
         fonts: FONTS,
         families: (fluent::families(), "\"Cascadia Mono\", ui-monospace"),
-        min_size: Some(app_scene().map_or((640.0, 480.0), apps::App::size)),
+        min_size: Some(app_scene().map_or((640.0, 480.0), apps::App::min_size)),
         ..AppSpec::new("WinUI 3 Gallery", (1280.0, 800.0), State::default, view)
     }
 }

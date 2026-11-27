@@ -57,6 +57,15 @@ impl App {
             App::Terminal => (1153.0, 616.0),
         }
     }
+
+    /// The smallest window the layout still works in: Calculator's keypad needs its full
+    /// height; the other replicas only crop their trailing space.
+    pub fn min_size(self) -> (f32, f32) {
+        match self {
+            App::Calc => self.size(),
+            _ => (320.0, 200.0),
+        }
+    }
 }
 
 pub fn view(s: &State, app: App) -> El {
