@@ -17,7 +17,13 @@ fn strokes(w: f32, h: f32, lines: &[([f32; 2], [f32; 2])], dots: &[[f32; 2]], co
         s = s.line(*a, *b, 1.0, LineCap::Butt, rgb(color));
     }
     for d in dots {
-        s = s.line([d[0] - 0.75, d[1]], [d[0] + 0.75, d[1]], 1.5, LineCap::Round, rgb(color));
+        s = s.line(
+            [d[0] - 0.75, d[1]],
+            [d[0] + 0.75, d[1]],
+            1.5,
+            LineCap::Round,
+            rgb(color),
+        );
     }
     canvas(s).size(w, h)
 }
@@ -52,7 +58,9 @@ fn key(k: Key, fill: u32, accent: bool, id: &'static str) -> El {
         .center()
         .role("button")
         .label(id)
-        .focusable(id.len() == 1 && id.as_bytes()[0].is_ascii_digit() || matches!(id, "C" | "CE" | "back"))
+        .focusable(
+            id.len() == 1 && id.as_bytes()[0].is_ascii_digit() || matches!(id, "C" | "CE" | "back"),
+        )
         .key(format!("calc-{id}"))
         .child(content);
     if id.len() == 1 && id.as_bytes()[0].is_ascii_digit() {
@@ -103,7 +111,13 @@ fn root() -> El {
 }
 
 fn grid() -> El {
-    let div = strokes(14.0, 10.0, &[([0.0, 5.0], [14.0, 5.0])], &[[7.0, 1.0], [7.0, 9.0]], WHITE);
+    let div = strokes(
+        14.0,
+        10.0,
+        &[([0.0, 5.0], [14.0, 5.0])],
+        &[[7.0, 1.0], [7.0, 9.0]],
+        WHITE,
+    );
     let times = strokes(
         9.0,
         9.0,
@@ -131,7 +145,12 @@ fn grid() -> El {
             key(Key::Text("%"), OP, false, "%"),
             key(Key::Text("CE"), OP, false, "CE"),
             key(Key::Text("C"), OP, false, "C"),
-            key(Key::Glyph(path_icon(icons::BACKSPACE, 16.0, WHITE)), OP, false, "back"),
+            key(
+                Key::Glyph(path_icon(icons::BACKSPACE, 16.0, WHITE)),
+                OP,
+                false,
+                "back",
+            ),
         ],
         vec![
             key(Key::Glyph(fraction()), OP, false, "inv"),

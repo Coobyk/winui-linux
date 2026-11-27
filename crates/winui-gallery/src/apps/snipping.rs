@@ -13,8 +13,16 @@ fn logo() -> El {
         16.0,
         [16.0, 16.0],
         &[
-            ("M1 2 a1.5 1.5 0 0 1 1.5 -1.5 h9 a1.5 1.5 0 0 1 1.5 1.5 v9 a1.5 1.5 0 0 1 -1.5 1.5 h-9 a1.5 1.5 0 0 1 -1.5 -1.5Z", 0xECEFF1, 0.0),
-            ("M3 3 h2 v2 h-2z M7 3 h2 v2 h-2z M3 7 h2 v2 h-2z", 0xE8553F, 0.0),
+            (
+                "M1 2 a1.5 1.5 0 0 1 1.5 -1.5 h9 a1.5 1.5 0 0 1 1.5 1.5 v9 a1.5 1.5 0 0 1 -1.5 1.5 h-9 a1.5 1.5 0 0 1 -1.5 -1.5Z",
+                0xECEFF1,
+                0.0,
+            ),
+            (
+                "M3 3 h2 v2 h-2z M7 3 h2 v2 h-2z M3 7 h2 v2 h-2z",
+                0xE8553F,
+                0.0,
+            ),
             ("M8 9 L14.5 15.5 M14.5 9 L8 15.5", 0x2493C7, 1.6),
         ],
     )
@@ -36,7 +44,11 @@ fn with_chevron(icon: &'static str) -> El {
     row()
         .items_center()
         .child(path_icon(icon, 20.0, WHITE))
-        .child(path_icon(icons::CHEVRON_DOWN, 12.0, 0xCACACA).ml(2.0).mt(1.0))
+        .child(
+            path_icon(icons::CHEVRON_DOWN, 12.0, 0xCACACA)
+                .ml(2.0)
+                .mt(1.0),
+        )
 }
 
 /// The ⊞ Windows key glyph.
@@ -45,7 +57,11 @@ fn win_key() -> El {
         10.0,
         10.0,
         [10.0, 10.0],
-        &[("M0 0 h4.6 v4.6 h-4.6z M5.4 0 h4.6 v4.6 h-4.6z M0 5.4 h4.6 v4.6 h-4.6z M5.4 5.4 h4.6 v4.6 h-4.6z", WHITE, 0.0)],
+        &[(
+            "M0 0 h4.6 v4.6 h-4.6z M5.4 0 h4.6 v4.6 h-4.6z M0 5.4 h4.6 v4.6 h-4.6z M5.4 5.4 h4.6 v4.6 h-4.6z",
+            WHITE,
+            0.0,
+        )],
     )
 }
 
@@ -78,7 +94,12 @@ pub fn view(_s: &State) -> El {
                 .role("button")
                 .label("Snip")
                 .child(path_icon(icons::CAMERA, 20.0, WHITE).mt(-2.0))
-                .child(el().absolute(12.0, 27.5).size(14.0, 2.5).radius(1.5).fill(rgb(ACCENT))),
+                .child(
+                    el().absolute(12.0, 27.5)
+                        .size(14.0, 2.5)
+                        .radius(1.5)
+                        .fill(rgb(ACCENT)),
+                ),
         )
         .child(
             el().absolute(38.0, 0.0)
@@ -114,8 +135,26 @@ pub fn view(_s: &State) -> El {
         .child(seg)
         .child(ghost(with_chevron(icons::SCREENSHOT), 48.0, "Snipping mode").absolute(201.0, 38.5))
         .child(ghost(with_chevron(icons::TIMER_OFF), 48.0, "Delay").absolute(257.0, 38.5))
-        .child(el().absolute(314.0, 43.0).size(1.0, 24.0).fill(rgb(0x2B2B2B)))
-        .child(ghost(path_icon(icons::SCAN_TEXT, 18.0, WHITE), 32.0, "Text actions").absolute(323.0, 39.0))
-        .child(ghost(path_icon(icons::MORE_HORIZONTAL, 26.0, WHITE), 40.0, "See more").absolute(455.0, 39.0))
+        .child(
+            el().absolute(314.0, 43.0)
+                .size(1.0, 24.0)
+                .fill(rgb(0x2B2B2B)),
+        )
+        .child(
+            ghost(
+                path_icon(icons::SCAN_TEXT, 18.0, WHITE),
+                32.0,
+                "Text actions",
+            )
+            .absolute(323.0, 39.0),
+        )
+        .child(
+            ghost(
+                path_icon(icons::MORE_HORIZONTAL, 26.0, WHITE),
+                40.0,
+                "See more",
+            )
+            .absolute(455.0, 39.0),
+        )
         .child(msg)
 }

@@ -64,13 +64,25 @@ fn settings_toggle_theme_and_accent() {
 fn app_scenes_are_wired_and_build() {
     let s = spec();
     for app in apps::App::ALL {
-        let (_, set) = s.scenes.iter().find(|(id, _)| *id == app.id()).expect(app.id());
+        let (_, set) = s
+            .scenes
+            .iter()
+            .find(|(id, _)| *id == app.id())
+            .expect(app.id());
         let mut rt = App::new(spec()).headless_runtime(app.size(), Env::new(true, 1.0));
         rt.update(move |st, _| set(st));
         rt.frame(0.0);
         assert_eq!(rt.state.app, Some(app));
-        assert!(rt.find(&format!("app-{}", app.id())).is_some(), "{}", app.id());
-        assert!(rt.find("nav-home").is_none(), "{} rendered the gallery shell", app.id());
+        assert!(
+            rt.find(&format!("app-{}", app.id())).is_some(),
+            "{}",
+            app.id()
+        );
+        assert!(
+            rt.find("nav-home").is_none(),
+            "{} rendered the gallery shell",
+            app.id()
+        );
     }
 }
 

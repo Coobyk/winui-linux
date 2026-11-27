@@ -148,7 +148,8 @@ pub fn caption_buttons(h: f32, fg: u32) -> El {
             .child(g)
     };
     let col = rgb(fg);
-    let min = canvas(Shape::new().line([0.0, 0.5], [10.0, 0.5], 1.0, LineCap::Butt, col)).size(10.0, 1.0);
+    let min =
+        canvas(Shape::new().line([0.0, 0.5], [10.0, 0.5], 1.0, LineCap::Butt, col)).size(10.0, 1.0);
     let max = el().size(10.0, 10.0).radius(1.5).border(1.0, col);
     let close = canvas(
         Shape::new()

@@ -37,9 +37,12 @@ fn nav_row(icon: &'static str, t: &'static str, y: f32, sel: bool) -> El {
         .child(path_icon(icon, 20.0, WHITE).ml(10.0))
         .child(label(t, 14.0, 400.0, WHITE).ml(14.0));
     if sel {
-        r = r
-            .fill(rgba(WHITE, 0.0512))
-            .child(el().absolute(0.0, 10.0).size(3.0, 16.0).radius(1.5).fill(rgb(ACCENT)));
+        r = r.fill(rgba(WHITE, 0.0512)).child(
+            el().absolute(0.0, 10.0)
+                .size(3.0, 16.0)
+                .radius(1.5)
+                .fill(rgb(ACCENT)),
+        );
     }
     r
 }
@@ -110,7 +113,11 @@ fn timer_card(x: f32, y: f32, mins: u32) -> El {
         10.0,
         10.0,
         [11.0, 11.0],
-        &[("M1.5 0.8 C1.5 0.2 2.1 -0.1 2.6 0.2 L9.2 4.3 C9.7 4.6 9.7 5.4 9.2 5.7 L2.6 9.8 C2.1 10.1 1.5 9.8 1.5 9.2Z", 0x000000, 0.0)],
+        &[(
+            "M1.5 0.8 C1.5 0.2 2.1 -0.1 2.6 0.2 L9.2 4.3 C9.7 4.6 9.7 5.4 9.2 5.7 L2.6 9.8 C2.1 10.1 1.5 9.8 1.5 9.2Z",
+            0x000000,
+            0.0,
+        )],
     );
     el().absolute(x, y)
         .size(396.0, 323.0)
@@ -127,12 +134,21 @@ fn timer_card(x: f32, y: f32, mins: u32) -> El {
                 .absolute(93.0, 46.0)
                 .size(210.0, 210.0)
                 .center()
-                .child(label(format!("00:{mins:02}:00"), 38.0, 600.0, SUB).mt(-8.0).mr(10.0)),
+                .child(
+                    label(format!("00:{mins:02}:00"), 38.0, 600.0, SUB)
+                        .mt(-8.0)
+                        .mr(10.0),
+                ),
         )
         .child(round_button(30.0, ACCENT, play.ml(1.0), "Start").absolute(162.0, 271.0))
         .child(
-            round_button(30.0, 0x3B3B3B, path_icon(icons::ARROW_COUNTERCLOCKWISE, 14.0, 0x7F7F7F), "Reset")
-                .absolute(204.0, 271.0),
+            round_button(
+                30.0,
+                0x3B3B3B,
+                path_icon(icons::ARROW_COUNTERCLOCKWISE, 14.0, 0x7F7F7F),
+                "Reset",
+            )
+            .absolute(204.0, 271.0),
         )
 }
 
@@ -165,7 +181,12 @@ fn toggle_on() -> El {
         .fill(rgb(ACCENT))
         .hover(rgba(ACCENT, 0.9))
         .role("switch")
-        .child(el().absolute(24.0, 4.0).size(12.0, 12.0).radius(6.0).fill(rgb(0x000000)))
+        .child(
+            el().absolute(24.0, 4.0)
+                .size(12.0, 12.0)
+                .radius(6.0)
+                .fill(rgb(0x000000)),
+        )
 }
 
 fn chevron_down() -> El {
@@ -215,7 +236,11 @@ fn on_chevron(chev: bool) -> El {
         .items_center()
         .child(label("On", 14.0, 400.0, WHITE).mt(-2.0))
         .child(toggle_on().ml(12.0));
-    if chev { r.child(chevron_down().ml(10.0).mr(0.5)) } else { r.mr(0.0) }
+    if chev {
+        r.child(chevron_down().ml(10.0).mr(0.5))
+    } else {
+        r.mr(0.0)
+    }
 }
 
 fn spotify() -> El {
@@ -225,7 +250,11 @@ fn spotify() -> El {
         [20.0, 20.0],
         &[
             ("M10 1 a9 9 0 1 1 0 18 a9 9 0 1 1 0 -18Z", WHITE, 0.0),
-            ("M5 7.6 C8.4 6.5 12.2 6.8 15.2 8.4 M5.6 10.6 C8.4 9.8 11.6 10.1 14 11.4 M6.2 13.4 C8.4 12.8 10.8 13 12.8 14", 0x323232, 1.4),
+            (
+                "M5 7.6 C8.4 6.5 12.2 6.8 15.2 8.4 M5.6 10.6 C8.4 9.8 11.6 10.1 14 11.4 M6.2 13.4 C8.4 12.8 10.8 13 12.8 14",
+                0x323232,
+                1.4,
+            ),
         ],
     )
 }

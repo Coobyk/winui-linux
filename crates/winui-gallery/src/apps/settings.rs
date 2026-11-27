@@ -15,31 +15,63 @@ fn nav_icon(i: usize) -> El {
     let l: &[(&str, u32, f32)] = match i {
         // Home
         0 => &[
-            ("M4 9.5 L10 4.5 L16 9.5 V17 a1 1 0 0 1 -1 1 H5 a1 1 0 0 1 -1 -1Z", 0xBDBDBD, 0.0),
+            (
+                "M4 9.5 L10 4.5 L16 9.5 V17 a1 1 0 0 1 -1 1 H5 a1 1 0 0 1 -1 -1Z",
+                0xBDBDBD,
+                0.0,
+            ),
             ("M8 12.5 h4 v5.5 h-4z", 0x7E7E7E, 0.0),
-            ("M10 1.6 L0.9 9.4 L2.4 11 L10 4.6 L17.6 11 L19.1 9.4Z", 0xE2650C, 0.0),
+            (
+                "M10 1.6 L0.9 9.4 L2.4 11 L10 4.6 L17.6 11 L19.1 9.4Z",
+                0xE2650C,
+                0.0,
+            ),
         ],
         // System
         1 => &[
-            ("M1.5 4.5 a1.5 1.5 0 0 1 1.5 -1.5 h14 a1.5 1.5 0 0 1 1.5 1.5 V14 h-17Z", 0x29B5D8, 0.0),
-            ("M1.5 13.5 h17 v1.5 a1.5 1.5 0 0 1 -1.5 1.5 h-14 a1.5 1.5 0 0 1 -1.5 -1.5Z", 0x0A4563, 0.0),
+            (
+                "M1.5 4.5 a1.5 1.5 0 0 1 1.5 -1.5 h14 a1.5 1.5 0 0 1 1.5 1.5 V14 h-17Z",
+                0x29B5D8,
+                0.0,
+            ),
+            (
+                "M1.5 13.5 h17 v1.5 a1.5 1.5 0 0 1 -1.5 1.5 h-14 a1.5 1.5 0 0 1 -1.5 -1.5Z",
+                0x0A4563,
+                0.0,
+            ),
             ("M15 15 h1.2 M13 15 h1.2", 0x8FD8EA, 0.6),
         ],
         // Bluetooth
         2 => &[
-            ("M10 0.5 C15.5 0.5 16 4 16 10 C16 16 15.5 19.5 10 19.5 C4.5 19.5 4 16 4 10 C4 4 4.5 0.5 10 0.5Z", 0x0A84FC, 0.0),
+            (
+                "M10 0.5 C15.5 0.5 16 4 16 10 C16 16 15.5 19.5 10 19.5 C4.5 19.5 4 16 4 10 C4 4 4.5 0.5 10 0.5Z",
+                0x0A84FC,
+                0.0,
+            ),
             ("M7 6.8 L13 12.6 L10 15.2 V4.8 L13 7.4 L7 13.2", WHITE, 1.3),
         ],
         // Network & internet
         3 => &[
             ("M10 16.5 L0.8 7.6 C6 2.6 14 2.6 19.2 7.6Z", 0x3CCBF4, 0.0),
-            ("M10 16.5 L4.4 11.1 C7.6 8.1 12.4 8.1 15.6 11.1Z", 0x1290DB, 0.0),
-            ("M10 16.5 L7.4 14 C8.9 12.6 11.1 12.6 12.6 14Z", 0x0C59A3, 0.0),
+            (
+                "M10 16.5 L4.4 11.1 C7.6 8.1 12.4 8.1 15.6 11.1Z",
+                0x1290DB,
+                0.0,
+            ),
+            (
+                "M10 16.5 L7.4 14 C8.9 12.6 11.1 12.6 12.6 14Z",
+                0x0C59A3,
+                0.0,
+            ),
         ],
         // Personalization
         4 => &[
             ("M17.5 2.5 L9 11", 0x9C9C9C, 2.6),
-            ("M8.2 10.2 L9.8 11.8 C9.6 15.6 6.2 18.2 1.8 18.2 C2.4 14.6 4.4 10.8 8.2 10.2Z", 0xF4901E, 0.0),
+            (
+                "M8.2 10.2 L9.8 11.8 C9.6 15.6 6.2 18.2 1.8 18.2 C2.4 14.6 4.4 10.8 8.2 10.2Z",
+                0xF4901E,
+                0.0,
+            ),
         ],
         // Apps
         5 => &[
@@ -50,36 +82,76 @@ fn nav_icon(i: usize) -> El {
         ],
         // Accounts
         6 => &[
-            ("M10 1.5 a4.2 4.2 0 1 1 0 8.4 a4.2 4.2 0 1 1 0 -8.4Z", 0x20C6B3, 0.0),
-            ("M3 14 a2.6 2.6 0 0 1 2.6 -2.6 h8.8 a2.6 2.6 0 0 1 2.6 2.6 v0.8 C17 17.4 14 18.6 10 18.6 C6 18.6 3 17.4 3 14.8Z", 0x16B2A0, 0.0),
+            (
+                "M10 1.5 a4.2 4.2 0 1 1 0 8.4 a4.2 4.2 0 1 1 0 -8.4Z",
+                0x20C6B3,
+                0.0,
+            ),
+            (
+                "M3 14 a2.6 2.6 0 0 1 2.6 -2.6 h8.8 a2.6 2.6 0 0 1 2.6 2.6 v0.8 C17 17.4 14 18.6 10 18.6 C6 18.6 3 17.4 3 14.8Z",
+                0x16B2A0,
+                0.0,
+            ),
         ],
         // Time & language
         7 => &[
-            ("M12 1.5 a6.8 6.8 0 1 1 0 13.6 a6.8 6.8 0 1 1 0 -13.6Z", 0x1692C7, 0.0),
-            ("M12 1.5 C16.5 1.5 18.8 5 18.8 8.3 H12Z M5.2 8.3 C5.2 5 7.5 1.5 12 1.5 V8.3Z", 0x31C8DC, 0.0),
+            (
+                "M12 1.5 a6.8 6.8 0 1 1 0 13.6 a6.8 6.8 0 1 1 0 -13.6Z",
+                0x1692C7,
+                0.0,
+            ),
+            (
+                "M12 1.5 C16.5 1.5 18.8 5 18.8 8.3 H12Z M5.2 8.3 C5.2 5 7.5 1.5 12 1.5 V8.3Z",
+                0x31C8DC,
+                0.0,
+            ),
             ("M6 9.3 a5 5 0 1 1 0 10 a5 5 0 1 1 0 -10Z", 0xE6E6E6, 0.0),
             ("M6 11.6 V14.3 H8.2", 0x404040, 1.1),
         ],
         // Gaming
         8 => &[
-            ("M5.5 5 h9 a4.5 4.5 0 0 1 4.5 4.5 v2.5 a3.2 3.2 0 0 1 -5.6 2.1 l-1.1 -1.1 h-4.6 l-1.1 1.1 A3.2 3.2 0 0 1 1 12 V9.5 A4.5 4.5 0 0 1 5.5 5Z", 0xC4C4C4, 0.0),
+            (
+                "M5.5 5 h9 a4.5 4.5 0 0 1 4.5 4.5 v2.5 a3.2 3.2 0 0 1 -5.6 2.1 l-1.1 -1.1 h-4.6 l-1.1 1.1 A3.2 3.2 0 0 1 1 12 V9.5 A4.5 4.5 0 0 1 5.5 5Z",
+                0xC4C4C4,
+                0.0,
+            ),
             ("M4.3 9.6 h3.4 M6 7.9 v3.4", 0x4A4A4A, 1.1),
-            ("M13.8 8.4 a0.9 0.9 0 1 1 0 1.8 a0.9 0.9 0 1 1 0 -1.8Z M15.6 10.2 a0.9 0.9 0 1 1 0 1.8 a0.9 0.9 0 1 1 0 -1.8Z", 0x0075CF, 0.0),
+            (
+                "M13.8 8.4 a0.9 0.9 0 1 1 0 1.8 a0.9 0.9 0 1 1 0 -1.8Z M15.6 10.2 a0.9 0.9 0 1 1 0 1.8 a0.9 0.9 0 1 1 0 -1.8Z",
+                0x0075CF,
+                0.0,
+            ),
         ],
         // Accessibility
         9 => &[
             ("M10 1 a2 2 0 1 1 0 4 a2 2 0 1 1 0 -4Z", 0x1292DE, 0.0),
-            ("M3.5 6.5 L10 8.3 L16.5 6.5 M10 8.3 V12 M10 12 L6.8 18.5 M10 12 L13.2 18.5", 0x1292DE, 2.2),
+            (
+                "M3.5 6.5 L10 8.3 L16.5 6.5 M10 8.3 V12 M10 12 L6.8 18.5 M10 12 L13.2 18.5",
+                0x1292DE,
+                2.2,
+            ),
         ],
         // Privacy & security
         10 => &[
-            ("M10 1.2 C12.6 3 15 3.8 17.6 3.8 V9.4 C17.6 14 14.6 17.2 10 18.8 C5.4 17.2 2.4 14 2.4 9.4 V3.8 C5 3.8 7.4 3 10 1.2Z", 0x8E8E8E, 0.0),
-            ("M10 1.2 C7.4 3 5 3.8 2.4 3.8 V9.4 C2.4 14 5.4 17.2 10 18.8Z", 0xC9C9C9, 0.0),
+            (
+                "M10 1.2 C12.6 3 15 3.8 17.6 3.8 V9.4 C17.6 14 14.6 17.2 10 18.8 C5.4 17.2 2.4 14 2.4 9.4 V3.8 C5 3.8 7.4 3 10 1.2Z",
+                0x8E8E8E,
+                0.0,
+            ),
+            (
+                "M10 1.2 C7.4 3 5 3.8 2.4 3.8 V9.4 C2.4 14 5.4 17.2 10 18.8Z",
+                0xC9C9C9,
+                0.0,
+            ),
         ],
         // Windows Update
         _ => &[
             ("M10 0 a10 10 0 1 1 0 20 a10 10 0 1 1 0 -20Z", 0x108FDD, 0.0),
-            ("M5.4 9.2 A4.7 4.7 0 0 1 13.6 6.6 M14.6 10.8 A4.7 4.7 0 0 1 6.4 13.4", WHITE, 1.3),
+            (
+                "M5.4 9.2 A4.7 4.7 0 0 1 13.6 6.6 M14.6 10.8 A4.7 4.7 0 0 1 6.4 13.4",
+                WHITE,
+                1.3,
+            ),
             ("M14.6 4.6 V7.4 H11.8 M5.4 15.4 V12.6 H8.2", WHITE, 1.3),
         ],
     };
@@ -183,10 +255,26 @@ fn bloom() -> El {
         60.0,
         [112.0, 60.0],
         &[
-            ("M20 60 C16 46 28 38 38 36 C36 24 48 12 60 10 C72 6 84 12 86 22 C96 28 102 44 96 60Z", 0x0A2BB8, 0.0),
-            ("M24 60 C22 48 32 42 42 41 C42 31 52 21 62 19 C71 17 79 23 80 31 C88 35 91 48 87 60Z", 0x1747F0, 0.0),
-            ("M26 58 C30 50 40 47 50 50 C46 42 52 34 60 32 C56 26 62 20 70 22", 0x3C74FF, 1.6),
-            ("M40 60 C42 54 50 52 58 56 M54 42 C62 38 70 40 74 46", 0x2A5CFF, 1.4),
+            (
+                "M20 60 C16 46 28 38 38 36 C36 24 48 12 60 10 C72 6 84 12 86 22 C96 28 102 44 96 60Z",
+                0x0A2BB8,
+                0.0,
+            ),
+            (
+                "M24 60 C22 48 32 42 42 41 C42 31 52 21 62 19 C71 17 79 23 80 31 C88 35 91 48 87 60Z",
+                0x1747F0,
+                0.0,
+            ),
+            (
+                "M26 58 C30 50 40 47 50 50 C46 42 52 34 60 32 C56 26 62 20 70 22",
+                0x3C74FF,
+                1.6,
+            ),
+            (
+                "M40 60 C42 54 50 52 58 56 M54 42 C62 38 70 40 74 46",
+                0x2A5CFF,
+                1.4,
+            ),
             ("M58 14 C66 12 76 16 80 24", 0x6A98FF, 1.2),
             ("M66 38 C76 36 86 44 86 58", 0x0A1D80, 2.2),
             ("M30 46 C36 40 44 39 50 42", 0x7BA4FF, 1.0),
@@ -208,7 +296,11 @@ fn hero() -> El {
                 .radial_gradient(
                     [0.55, 0.35],
                     70.0,
-                    [(0.0, rgb(0x123A6A)), (0.6, rgb(0x0A1A33)), (1.0, rgb(0x050A14))],
+                    [
+                        (0.0, rgb(0x123A6A)),
+                        (0.6, rgb(0x0A1A33)),
+                        (1.0, rgb(0x050A14)),
+                    ],
                 )
                 .child(bloom().absolute(0.0, 0.0)),
         );
@@ -236,8 +328,17 @@ fn hero() -> El {
         .child(img)
         .child(label("Plumbum", 18.0, 600.0, WHITE).absolute(461.0, 130.0))
         .child(label("System Product Name", 14.0, 400.0, WHITE).absolute(461.0, 154.0))
-        .child(label("Rename", 14.0, 400.0, LINK).absolute(462.0, 173.0).role("link"))
-        .child(promo(874.0, ms, "Microsoft 365", label("View benefits", 12.0, 400.0, gray)))
+        .child(
+            label("Rename", 14.0, 400.0, LINK)
+                .absolute(462.0, 173.0)
+                .role("link"),
+        )
+        .child(promo(
+            874.0,
+            ms,
+            "Microsoft 365",
+            label("View benefits", 12.0, 400.0, gray),
+        ))
         .child(promo(
             1023.0,
             nav_icon(11),
@@ -250,16 +351,48 @@ fn hero() -> El {
 }
 
 const ROWS: [(&str, &str, &str); 10] = [
-    ("Display", "Monitors, brightness, night light, display profile", icons::LAPTOP),
-    ("Sound", "Volume levels, output, input, sound devices", icons::SPEAKER_2),
-    ("Notifications", "Alerts from apps and system, do not disturb", icons::ALERT),
+    (
+        "Display",
+        "Monitors, brightness, night light, display profile",
+        icons::LAPTOP,
+    ),
+    (
+        "Sound",
+        "Volume levels, output, input, sound devices",
+        icons::SPEAKER_2,
+    ),
+    (
+        "Notifications",
+        "Alerts from apps and system, do not disturb",
+        icons::ALERT,
+    ),
     ("Focus", "Reduce distractions", icons::TARGET),
-    ("Power", "Screen and sleep, power mode, energy saver", icons::POWER),
-    ("Storage", "Storage space, drives, configuration rules", icons::STORAGE),
+    (
+        "Power",
+        "Screen and sleep, power mode, energy saver",
+        icons::POWER,
+    ),
+    (
+        "Storage",
+        "Storage space, drives, configuration rules",
+        icons::STORAGE,
+    ),
     ("Share", "Share files, photos, links and more", icons::SHARE),
-    ("Multitasking", "Snap windows, desktops, task switching", icons::SQUARE_MULTIPLE),
-    ("Advanced", "Performance, optimization, and developer features", icons::WRENCH_SCREWDRIVER),
-    ("Activation", "Activation state, subscriptions, product key", icons::CHECKMARK_CIRCLE),
+    (
+        "Multitasking",
+        "Snap windows, desktops, task switching",
+        icons::SQUARE_MULTIPLE,
+    ),
+    (
+        "Advanced",
+        "Performance, optimization, and developer features",
+        icons::WRENCH_SCREWDRIVER,
+    ),
+    (
+        "Activation",
+        "Activation state, subscriptions, product key",
+        icons::CHECKMARK_CIRCLE,
+    ),
 ];
 
 fn card(t: &'static str, sub: &'static str, icon: &'static str) -> El {

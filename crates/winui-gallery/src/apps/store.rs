@@ -17,7 +17,11 @@ fn store_logo() -> El {
         [17.0, 17.0],
         &[
             ("M5.5 3 V2.5 a2.5 2.5 0 0 1 5 0 V3", 0xEDEDED, 1.2),
-            ("M1 3.5 h14 v10 a2 2 0 0 1 -2 2 h-10 a2 2 0 0 1 -2 -2Z", WHITE, 0.0),
+            (
+                "M1 3.5 h14 v10 a2 2 0 0 1 -2 2 h-10 a2 2 0 0 1 -2 -2Z",
+                WHITE,
+                0.0,
+            ),
             ("M4.5 6.5 h3.2 v3.2 h-3.2z", 0xF25022, 0.0),
             ("M8.3 6.5 h3.2 v3.2 h-3.2z", 0x7FBA00, 0.0),
             ("M4.5 10.3 h3.2 v3.2 h-3.2z", 0x00A4EF, 0.0),
@@ -45,9 +49,19 @@ fn rail() -> El {
         .size(64.0, 58.0)
         .radius(4.0)
         .fill(rgb(0x454545))
-        .child(el().absolute(0.0, 17.0).size(3.0, 24.0).radius(1.5).fill(rgb(ACCENT)))
+        .child(
+            el().absolute(0.0, 17.0)
+                .size(3.0, 24.0)
+                .radius(1.5)
+                .fill(rgb(ACCENT)),
+        )
         .child(path_icon(icons::CLOUD_ARROW_DOWN, 26.0, ACCENT).absolute(19.0, 15.0))
-        .child(el().absolute(49.0, 9.0).size(7.0, 7.0).radius(3.5).fill(rgb(ACCENT)));
+        .child(
+            el().absolute(49.0, 9.0)
+                .size(7.0, 7.0)
+                .radius(3.5)
+                .fill(rgb(ACCENT)),
+        );
     el().absolute(0.0, 0.0)
         .size(73.0, 928.0)
         .child(rail_item(icons::HOME, "Home", 53.0))
@@ -68,7 +82,11 @@ fn title_bar() -> El {
         .fill(rgb(0x2D2D2D))
         .border_sides([0.0, 1.0, 0.0, 1.0], rgb(0x333333))
         .items_center()
-        .child(label("Search apps, games, and more", 14.0, 400.0, 0xCFCFCF).ml(11.0).mt(-1.0))
+        .child(
+            label("Search apps, games, and more", 14.0, 400.0, 0xCFCFCF)
+                .ml(11.0)
+                .mt(-1.0),
+        )
         .child(rune::spacer())
         .child(path_icon(icons::SEARCH, 14.0, 0xEFEFEF).mr(12.0));
     let avatar = el()
@@ -105,7 +123,11 @@ fn tile(i: usize) -> El {
             32.0,
             [40.0, 40.0],
             &[
-                ("M5 9 h6 a4 4 0 0 1 8 0 h4 v6 a4 4 0 0 1 0 8 v4 h-18Z", WHITE, 0.0),
+                (
+                    "M5 9 h6 a4 4 0 0 1 8 0 h4 v6 a4 4 0 0 1 0 8 v4 h-18Z",
+                    WHITE,
+                    0.0,
+                ),
                 ("M10 13 L18 18 L10 23Z", 0x0078D7, 0.0),
             ],
         )
@@ -229,8 +251,13 @@ fn app_row(i: usize) -> El {
         .child(label(name, 14.0, 400.0, WHITE).absolute(72.0, 16.0))
         .child(label(publisher, 12.0, 400.0, 0xD0D0D0).absolute(72.0, 36.0))
         .child(
-            label(if app { "Apps" } else { "System Components" }, 14.0, 400.0, WHITE)
-                .absolute(338.0, 26.0),
+            label(
+                if app { "Apps" } else { "System Components" },
+                14.0,
+                400.0,
+                WHITE,
+            )
+            .absolute(338.0, 26.0),
         )
         .child(label("Modified yesterday", 14.0, 400.0, WHITE).absolute(556.0, 26.0))
         .child(button(if app { "Open" } else { "More info" }, 120.0, 32.0).absolute(873.0, 19.0))
