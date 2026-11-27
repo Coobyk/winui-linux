@@ -101,12 +101,13 @@ impl Slider {
         let track = rune::el().absolute(THUMB / 2.0, ty).size(travel, TRACK).radius(TRACK / 2.0).fill(rc(rest));
         let value = |c: theme::Color| rune::el().absolute(THUMB / 2.0, ty).size(x.max(0.0), TRACK).radius(TRACK / 2.0).fill(rc(c));
         let thumb = thumb(t, en, x, (sizes::CONTROL_HEIGHT - THUMB) / 2.0, fill, hover_fill);
-        let mut s = rune::el()
-            .size(w, sizes::CONTROL_HEIGHT)
-            .hover_group()
-            .child(track)
-            .child(style::hover_layer(value(fill), 1.0, 0.0))
-            .child(style::hover_layer(value(hover_fill), 0.0, 1.0))
+        let mut s = rune::el().size(w, sizes::CONTROL_HEIGHT).hover_group().child(track);
+        s = if style::pinned().is_some() {
+            s.child(value(fill))
+        } else {
+            s.child(style::hover_layer(value(fill), 1.0, 0.0)).child(style::hover_layer(value(hover_fill), 0.0, 1.0))
+        };
+        let mut s = s
             .child(thumb)
             .role("slider")
             .label(self.header.clone().unwrap_or_else(|| "Slider".into()))
