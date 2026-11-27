@@ -282,7 +282,7 @@ impl DropDownButton {
 /// Mounts `menu` below `anchor` when `open`.
 pub(crate) fn with_flyout(anchor: El, t: &Theme, open: bool, menu: Option<&MenuFlyout>, key: &str) -> El {
     match (open, menu) {
-        (true, Some(m)) => col().child(anchor).child(m.view(t).anchored(key.to_owned(), rune::Side::Bottom, rune::Align::Start, 4.0)),
+        (true, Some(m)) => col().child(m.view(t).anchored(key.to_owned(), rune::Side::Bottom, rune::Align::Start, 4.0).raise()).child(anchor),
         _ => anchor,
     }
 }

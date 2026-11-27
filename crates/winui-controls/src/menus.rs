@@ -154,7 +154,7 @@ impl Flyout {
     pub fn view(&self, t: &Theme) -> El {
         let f = flyout_surface(t).padding(16.0).gap(12.0).child((self.content)(t)).role("dialog");
         match &self.anchor {
-            Some(k) => f.anchored(k.clone(), rune::Side::Bottom, rune::Align::Start, 4.0),
+            Some(k) => f.anchored(k.clone(), rune::Side::Bottom, rune::Align::Start, 4.0).raise(),
             None => f,
         }
     }
@@ -253,11 +253,8 @@ impl ComboBox {
         if en {
             face = self.toggle.attach(focus_rect(face, t, R), !self.open);
         }
+        // The popup mounts before its anchor so it lifts above later siblings.
         let mut out = col();
-        if let Some(h) = &self.header {
-            out = out.child(header(h, t, en));
-        }
-        out = out.child(face);
         if self.open && en {
             let mut list = flyout_surface(t).w(self.width).py(2.0).role("listbox");
             for (i, item) in self.items.iter().enumerate() {
@@ -273,9 +270,12 @@ impl ComboBox {
                 }
                 list = list.child(self.select.attach(r, i));
             }
-            out = out.child(list.anchored(self.key.clone(), rune::Side::Bottom, rune::Align::Start, 4.0));
+            out = out.child(list.anchored(self.key.clone(), rune::Side::Bottom, rune::Align::Start, 4.0).raise());
         }
-        out
+        if let Some(h) = &self.header {
+            out = out.child(header(h, t, en));
+        }
+        out.child(face)
     }
 }
 

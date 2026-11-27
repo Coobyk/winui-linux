@@ -283,7 +283,7 @@ impl ToolTip {
             .child(rune::text(self.text.clone()).font(style::caption(t)).color(rc(k.text_fill_color_primary)).wrap())
             .role("tooltip");
         match &self.anchor {
-            Some(a) => tip.anchored(a.clone(), rune::Side::Top, rune::Align::Center, 4.0),
+            Some(a) => tip.anchored(a.clone(), rune::Side::Top, rune::Align::Center, 4.0).raise(),
             None => tip,
         }
     }
@@ -355,7 +355,7 @@ impl TeachingTip {
             tip = tip.child(actions);
         }
         match &self.anchor {
-            Some(a) => tip.anchored(a.clone(), rune::Side::Bottom, rune::Align::Center, 8.0),
+            Some(a) => tip.anchored(a.clone(), rune::Side::Bottom, rune::Align::Center, 8.0).raise(),
             None => tip,
         }
     }

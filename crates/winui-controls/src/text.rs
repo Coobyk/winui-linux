@@ -384,7 +384,7 @@ impl AutoSuggestBox {
                 .label(s.clone());
             list = list.child(self.choose.attach(item, i));
         }
-        col().child(field).child(list.anchored(key, rune::Side::Bottom, rune::Align::Start, 2.0))
+        col().child(list.anchored(key, rune::Side::Bottom, rune::Align::Start, 2.0).raise()).child(field)
     }
 }
 
