@@ -123,8 +123,13 @@ fn row_view(s: &Row, _: &mut Cx<Row>) -> El {
         reveal(&Theme::dark(), &s.light)
             .absolute(20.0, 30.0)
             .size(300.0, 40.0)
-            .on_hover_change_any(|_, tx| tx.live_only())
-            .child(rune::text("Home").pl(16.0)),
+            .chain_hover_change_any(|_, tx| tx.live_only())
+            .child(rune::text("Home").pl(16.0))
+            .child(
+                el().absolute(200.0, 0.0)
+                    .size(40.0, 40.0)
+                    .on_press(|_: &mut Row| {}),
+            ),
     )
 }
 
@@ -153,6 +158,13 @@ fn reveal_tracks_pointer_without_rebuilding() {
         [100.0 - r, 20.0 - r, 2.0 * r, 2.0 * r]
     );
     assert_eq!(rt.stats.commits, commits);
+    rt.pointer_move(240.0, 50.0);
+    rt.frame(1.0 / 60.0);
+    assert!(
+        rt.state.light.is_lit(),
+        "a pressable child keeps the row lit"
+    );
+    assert_eq!(rt.state.light.pointer(), [220.0, 20.0]);
     rt.pointer_move(390.0, 190.0);
     rt.frame(1.0 / 60.0);
     assert!(!rt.state.light.is_lit());

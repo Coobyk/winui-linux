@@ -40,3 +40,4 @@ cargo run -p winui-materials --example demo -- --scene mica|acrylic|reveal|shado
   source-over onto the blurred backdrop. Colourful backdrops keep slightly less hue than on Windows.
 - Accent Acrylic tints with `AccentFillColorDefault` rather than WinUI's `SystemAccentColorDark1`/`Light3`.
 - Reveal's light switches on/off instantly; WinUI fades the hover light in over 166 ms.
+- `reveal(...)` owns its element's hover handler: add your own with `chain_hover_change_any`, since `on_hover_change*` replaces the one that turns the light off.

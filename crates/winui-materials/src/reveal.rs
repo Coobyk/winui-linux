@@ -204,10 +204,9 @@ pub fn reveal_with(style: &RevealStyle, light: &RevealLight) -> El {
         light.place();
     }
     let (on_layout, on_move, on_hover) = (light.clone(), light.clone(), light.clone());
-    // Pointer tracking lives on a full-size child so handlers the caller adds to the returned
-    // element don't replace it.
-    let tracker = el()
-        .pin(Some(0.0), Some(0.0), Some(0.0), Some(0.0))
+    // To add a hover handler of your own, use `chain_hover_change_any`: `on_hover_change*`
+    // would replace the one that turns the light off.
+    el().clip_rounded(style.radius)
         .on_layout_any(move |r, tx| {
             if !on_layout.set_size([r[2], r[3]]) {
                 tx.live_only();
@@ -222,9 +221,7 @@ pub fn reveal_with(style: &RevealStyle, light: &RevealLight) -> El {
                 on_hover.release();
             }
             tx.live_only();
-        });
-    el().clip_rounded(style.radius)
-        .child(tracker)
+        })
         .child(pool(style.hover, hover_r, &light.hover_rect, &light.lit))
         .child(strip(
             [Some(0.0), Some(0.0), Some(0.0), None],
