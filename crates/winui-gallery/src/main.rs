@@ -425,14 +425,16 @@ fn ref_size(args: &[String]) -> Option<(f32, f32)> {
     {
         return None;
     }
+    // The last --scene wins, as in Rune's own argument parsing.
     let scene = args
         .iter()
         .enumerate()
-        .find_map(|(i, a)| match a.strip_prefix("--scene=") {
+        .filter_map(|(i, a)| match a.strip_prefix("--scene=") {
             Some(v) => Some(v),
             None if a == "--scene" => args.get(i + 1).map(String::as_str),
             None => None,
-        })?;
+        })
+        .last()?;
     refs::Ref::from_id(scene).map(refs::Ref::size)
 }
 

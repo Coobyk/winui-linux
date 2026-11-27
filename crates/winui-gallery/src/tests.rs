@@ -72,3 +72,12 @@ fn reference_scenes_register_and_build() {
         assert!(!rt.elements().is_empty(), "{}", r.id());
     }
 }
+
+#[test]
+fn ref_size_follows_last_scene_and_yields_to_size() {
+    let a = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+    assert_eq!(ref_size(&a(&["--scene", "ref-calculator"])), Some(refs::Ref::Calculator.size()));
+    assert_eq!(ref_size(&a(&["--scene", "ref-calculator", "--scene=ref-terminal"])), Some(refs::Ref::Terminal.size()));
+    assert_eq!(ref_size(&a(&["--scene", "ref-terminal", "--scene", "buttons"])), None);
+    assert_eq!(ref_size(&a(&["--scene", "ref-terminal", "--size", "800x600"])), None);
+}
