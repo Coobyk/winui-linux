@@ -348,7 +348,7 @@ fn view(s: &State, cx: &mut Cx<State>) -> El {
         .min_h(0.0)
         .grow(1.0)
         .scroll(ScrollSpec::default())
-        .key("content")
+        .key(format!("content-{}", s.page.id()))
         .child(
             col()
                 .w_full()
