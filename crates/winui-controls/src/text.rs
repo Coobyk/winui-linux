@@ -164,7 +164,7 @@ impl TextBox {
         if en {
             field = self.focus.attach(field, ());
         }
-        let field = row().padding(inset).child(field).child(ring);
+        let field = row().w(self.width).padding(inset).child(field).child(ring);
         match &self.header {
             Some(h) => col().child(header(h, t, en)).child(field),
             None => field,
