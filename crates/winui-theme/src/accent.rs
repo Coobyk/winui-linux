@@ -67,7 +67,7 @@ impl AccentRamp {
                 a[1]
             };
             let h = a[2] + hue_weight * wrap(r[2] - base[2]);
-            from_lch_in_gamut(l, c, h)
+            quantized(from_lch_in_gamut(l, c, h))
         };
         // Light mode puts white text on Dark1, dark mode black text on Light2
         // (`TextOnAccentFillColorPrimary`); keep both legible (WCAG AA 4.5:1).
@@ -111,6 +111,7 @@ const MIN_TEXT_CONTRAST: f32 = 4.5;
 /// Move `c` in OKLCH lightness (darker or lighter) just far enough to reach
 /// [`MIN_TEXT_CONTRAST`] against `text`, measured after 8-bit quantization.
 fn with_contrast(c: Color, text: Color, darker: bool) -> Color {
+    let c = quantized(c);
     if c.contrast_ratio(text) >= MIN_TEXT_CONTRAST {
         return c;
     }
@@ -130,21 +131,29 @@ fn quantized(c: Color) -> Color {
     Color::rgb(r, g, b)
 }
 
+/// Exported steps are 8-bit, so ordering is enforced on quantized colours.
 fn not_lighter_than(c: Color, limit: Color) -> Color {
-    let ([l, ch, h], max) = (lch(c), lch(limit)[0]);
-    if l > max {
-        from_lch_in_gamut(max, ch, h)
-    } else {
-        c
-    }
+    clamp_lightness(c, lch(limit)[0], true)
 }
 
 fn not_darker_than(c: Color, limit: Color) -> Color {
-    let ([l, ch, h], min) = (lch(c), lch(limit)[0]);
-    if l < min {
-        from_lch_in_gamut(min, ch, h)
-    } else {
-        c
+    clamp_lightness(c, lch(limit)[0], false)
+}
+
+fn clamp_lightness(c: Color, bound: f32, at_most: bool) -> Color {
+    let [l, ch, h] = lch(c);
+    let ok = |l: f32| if at_most { l <= bound } else { l >= bound };
+    if ok(l) {
+        return c;
+    }
+    let mut target = bound;
+    let nudge = if at_most { -0.0005 } else { 0.0005 };
+    loop {
+        let q = quantized(from_lch_in_gamut(target, ch, h));
+        if ok(lch(q)[0]) || !(0.0..=1.0).contains(&target) {
+            return q;
+        }
+        target += nudge;
     }
 }
 
