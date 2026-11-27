@@ -282,9 +282,7 @@ fn pane(s: &State, t: &Theme) -> El {
             16.0,
             k.text_fill_color_primary,
         ));
-    let acrylic = fluent::acrylic_default(t)
-        .pin(Some(0.0), Some(0.0), Some(0.0), Some(0.0))
-        .opacity(0.0);
+    let acrylic = fluent::acrylic_default(t).pin(Some(0.0), Some(0.0), Some(0.0), Some(0.0));
     col()
         .w(sizes::NAV_OPEN_PANE_LENGTH)
         .h_full()
