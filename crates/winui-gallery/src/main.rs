@@ -446,6 +446,9 @@ fn argv() -> Vec<String> {
             let (w, h) = a.size();
             args.extend(["--size".into(), format!("{w}x{h}")]);
         }
+        if !args.iter().any(|a| a == "--scale") {
+            args.extend(["--scale".into(), "1".into()]);
+        }
     }
     args
 }
