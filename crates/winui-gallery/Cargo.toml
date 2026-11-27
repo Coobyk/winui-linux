@@ -7,6 +7,10 @@ license.workspace = true
 name = "winui-gallery"
 path = "src/main.rs"
 
+[[bin]]
+name = "winui-apps"
+path = "src/bin/apps/main.rs"
+
 [dependencies]
 # `tooling` keeps Rune's headless CLI (--scene/--theme/--snap/--at) in release builds too.
 rune = { workspace = true, features = ["tooling"] }
