@@ -25,10 +25,14 @@ thread_local! {
 /// Builds `f` with every control's interactive state frozen to `s`: views resolve their
 /// PointerOver / Pressed brushes statically instead of attaching hover and press hooks.
 pub fn with_visual_state<R>(s: VisualState, f: impl FnOnce() -> R) -> R {
-    let prev = PINNED.with(|p| p.replace(Some(s)));
-    let r = f();
-    PINNED.with(|p| p.set(prev));
-    r
+    struct Restore(Option<VisualState>);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            PINNED.with(|p| p.set(self.0));
+        }
+    }
+    let _restore = Restore(PINNED.with(|p| p.replace(Some(s))));
+    f()
 }
 
 /// The state pinned by [`with_visual_state`], if any.
