@@ -78,3 +78,21 @@ fn app_scenes_render_the_clone_full_window() {
     (s.scenes.iter().find(|(id, _)| *id == "settings").unwrap().1)(&mut st);
     assert!(!st.full_app);
 }
+
+#[test]
+fn app_scene_drops_the_gallery_shell() {
+    let s = spec();
+    let set = s
+        .scenes
+        .iter()
+        .find(|(id, _)| *id == "app-store")
+        .unwrap()
+        .1;
+    let mut rt = rt(true);
+    rt.update(move |st, _| set(st));
+    rt.frame(0.0);
+    assert!(rt.find("nav-status").is_none());
+    rt.update(|st, _| st.full_app = false);
+    rt.frame(0.0);
+    assert!(rt.find("nav-status").is_some());
+}
