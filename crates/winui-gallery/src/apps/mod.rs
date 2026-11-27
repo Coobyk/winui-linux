@@ -82,8 +82,6 @@ pub fn rgba(hex: u32, a: f32) -> Color {
 }
 
 pub const WHITE: u32 = 0xFFFFFF;
-/// TextFillColorSecondary over the dark Mica base, as the screenshots show it.
-pub const GRAY: u32 = 0xCFCFCF;
 /// AccentFillColorDefault (dark): SystemAccentColorLight2 for the default blue.
 pub const ACCENT: u32 = 0x4CC2FF;
 

@@ -59,3 +59,30 @@ fn settings_toggle_theme_and_accent() {
         Theme::dark().tokens().accent_fill_color_default
     );
 }
+
+#[test]
+fn app_scenes_are_wired_and_build() {
+    let s = spec();
+    for app in apps::App::ALL {
+        let (_, set) = s.scenes.iter().find(|(id, _)| *id == app.id()).expect(app.id());
+        let mut rt = App::new(spec()).headless_runtime(app.size(), Env::new(true, 1.0));
+        rt.update(move |st, _| set(st));
+        rt.frame(0.0);
+        assert_eq!(rt.state.app, Some(app));
+        assert!(!rt.elements().is_empty(), "{}", app.id());
+    }
+}
+
+#[test]
+fn calculator_keys_edit_the_display() {
+    let mut rt = App::new(spec()).headless_runtime((328.0, 532.0), Env::new(true, 1.0));
+    rt.update(|s, _| s.app = Some(apps::App::Calc));
+    rt.frame(0.0);
+    for id in ["calc-7", "calc-4", "calc-back", "calc-2"] {
+        let (x, y) = rt.find(id).unwrap();
+        rt.pointer_down(x, y);
+        rt.pointer_up(x, y);
+        rt.frame(0.0);
+    }
+    assert_eq!(rt.state.calc, "72");
+}
