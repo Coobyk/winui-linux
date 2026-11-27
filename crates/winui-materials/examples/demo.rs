@@ -52,7 +52,7 @@ fn wallpaper() -> El {
     let c = |r, g, b| rc(Color::rgb(r, g, b));
     el().pin(Some(0.0), Some(0.0), Some(0.0), Some(0.0))
         .linear_gradient(
-            135.0,
+            135f32.to_radians(),
             [
                 (0.0, c(0x00, 0x5F, 0xB8)),
                 (0.5, c(0x8E, 0x3C, 0xC7)),
