@@ -122,9 +122,7 @@ impl AcrylicBrush {
     /// backdrop over the opaque fallback → Luminosity blend → Color blend → noise source-over
     /// (noise taken at its mean grey, as a flat region averages it).
     pub fn composite_over(&self, backdrop: Color) -> Color {
-        let base = backdrop.over(self.fallback_color.with_alpha(1.0));
-        let lum = blend_luminosity(base, self.effective_luminosity_color());
-        let tinted = blend_color(lum, self.effective_tint_color());
+        let tinted = self.composite_under_noise(backdrop);
         let mean = NOISE_LEVELS.iter().map(|&(v, p)| v as f32 * p).sum::<f32>() / 255.0;
         Color {
             r: mean,
@@ -133,6 +131,18 @@ impl AcrylicBrush {
             a: NOISE_OPACITY,
         }
         .over(tinted)
+    }
+
+    /// [`Self::composite_over`] without the noise layer. An opaque effective tint replaces the
+    /// backdrop, blur and luminosity steps (`shouldBrushBeOpaque` in `AcrylicBrush.cpp`).
+    pub fn composite_under_noise(&self, backdrop: Color) -> Color {
+        let tint = self.effective_tint_color();
+        if tint.a >= 1.0 {
+            return tint;
+        }
+        let base = backdrop.over(self.fallback_color.with_alpha(1.0));
+        let lum = blend_luminosity(base, self.effective_luminosity_color());
+        blend_color(lum, tint)
     }
 
     /// The brush as a Rune element: `backdrop_blur(30)`, then the luminosity layer and the
@@ -204,7 +214,7 @@ impl AcrylicBrush {
     pub fn accent_base(theme: &Theme) -> Self {
         let a = theme.accent();
         if theme.is_dark() {
-            Self::new(a.dark2, 0.8, Some(0.8), a.dark1)
+            Self::new(a.dark2, 0.8, Some(0.8), a.dark2)
         } else {
             Self::new(a.light3, 0.8, Some(0.9), a.light3)
         }

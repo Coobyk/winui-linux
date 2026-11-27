@@ -189,3 +189,19 @@ fn blend_modes() {
     let out = blend_color(grey, red);
     assert!(close(lum(out), lum(grey)) && out.r > out.g);
 }
+
+#[test]
+fn acrylic_opaque_tint_and_accent_fallback() {
+    let opaque = AcrylicBrush::new(
+        Color::rgb(0x00, 0x78, 0xD4),
+        1.0,
+        Some(1.0),
+        Color::rgb(0, 0, 0),
+    );
+    let r = opaque.composite_under_noise(Color::rgb(255, 0, 0));
+    assert_eq!(r, opaque.effective_tint_color());
+    let dark = Theme::dark();
+    let b = AcrylicBrush::accent_base(&dark);
+    assert_eq!(b.fallback_color, dark.accent().dark2);
+    assert_eq!(b.tint_color, dark.accent().dark2);
+}

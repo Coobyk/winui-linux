@@ -72,7 +72,7 @@ impl MicaBrush {
 
     /// Mica tinted for a known wallpaper average (see [`Self::composite_over`]).
     pub fn el_over(&self, wallpaper: Color) -> El {
-        surface(rc(self.composite_over(wallpaper)))
+        surface(rc(self.as_acrylic().composite_under_noise(wallpaper)))
     }
 }
 
