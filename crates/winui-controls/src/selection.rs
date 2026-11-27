@@ -400,7 +400,7 @@ impl RatingControl {
         let mut r = row().gap(8.0).center_y().min_h(sizes::CONTROL_HEIGHT).role("slider").label("Rating").range_value(self.value as f64, 0.0, self.max as f64);
         for i in 0..self.max {
             let on = self.value >= i as f32 + 0.5;
-            let star = if on { glyph(Symbol::FavoriteFilled, 20.0, filled) } else { glyph(Symbol::Favorite, 20.0, empty) };
+            let star = if on { glyph(Symbol::StarFilled, 20.0, filled) } else { glyph(Symbol::Star, 20.0, empty) };
             let mut cell = rune::el().size(20.0, 20.0).radius(R).child(star).key(format!("{}:{}", self.key, i + 1));
             if en {
                 cell = self.rate.attach(cell.hover(rc(k.subtle_fill_color_secondary)), i + 1);

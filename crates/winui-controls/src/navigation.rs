@@ -124,7 +124,7 @@ impl NavigationView {
     }
     pub fn view(&self, t: &Theme) -> El {
         let k = t.tokens();
-        let width = if self.pane_open { sizes::NAV_PANE_OPEN } else { sizes::NAV_PANE_COMPACT };
+        let width = if self.pane_open { sizes::NAV_OPEN_PANE_LENGTH } else { sizes::NAV_COMPACT_PANE_LENGTH };
         let toggle = row()
             .size(40.0, 36.0)
             .mx(4.0)

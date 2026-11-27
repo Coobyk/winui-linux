@@ -320,7 +320,7 @@ impl PersonPicture {
             .label(self.name.clone().unwrap_or_else(|| "Person".into()));
         circle = match initials {
             Some(i) => circle.child(rune::text(i).font(rune::TextStyle::new((s * 0.42).round(), 600.0).lh(s * 0.5)).color(rc(k.text_fill_color_primary))),
-            None => circle.child(glyph(Symbol::Contact, s * 0.42, k.text_fill_color_primary)),
+            None => circle.child(glyph(Symbol::Person, s * 0.42, k.text_fill_color_primary)),
         };
         match self.badge {
             Some(n) => {

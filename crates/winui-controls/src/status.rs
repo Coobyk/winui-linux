@@ -24,10 +24,10 @@ impl Severity {
     fn look(self, t: &Theme) -> (theme::Color, theme::Color, Symbol) {
         let k = t.tokens();
         match self {
-            Severity::Informational => (k.system_fill_color_attention, k.system_fill_color_attention_background, Symbol::InfoFilled),
-            Severity::Success => (k.system_fill_color_success, k.system_fill_color_success_background, Symbol::SuccessFilled),
-            Severity::Warning => (k.system_fill_color_caution, k.system_fill_color_caution_background, Symbol::WarningFilled),
-            Severity::Error => (k.system_fill_color_critical, k.system_fill_color_critical_background, Symbol::ErrorFilled),
+            Severity::Informational => (k.system_fill_color_attention, k.system_fill_color_attention_background, Symbol::Info),
+            Severity::Success => (k.system_fill_color_success, k.system_fill_color_success_background, Symbol::CheckmarkCircle),
+            Severity::Warning => (k.system_fill_color_caution, k.system_fill_color_caution_background, Symbol::Warning),
+            Severity::Error => (k.system_fill_color_critical, k.system_fill_color_critical_background, Symbol::ErrorCircle),
         }
     }
 }
@@ -277,7 +277,7 @@ impl ToolTip {
             .pt(6.0)
             .pb(8.0)
             .radius(R)
-            .fill(rc(k.acrylic_background_fill_color_default))
+            .fill(rc(style::acrylic(t)))
             .border(1.0, rc(k.surface_stroke_color_flyout))
             .shadow(4.0, 8.0, rune::Color::BLACK.alpha(if t.is_dark() { 0.26 } else { 0.14 }))
             .child(rune::text(self.text.clone()).font(style::caption(t)).color(rc(k.text_fill_color_primary)).wrap())

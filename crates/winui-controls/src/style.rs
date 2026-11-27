@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 use rune::{El, Shape, TextStyle};
 
-use crate::shim::icons::{Glyph, Symbol};
+use crate::shim::icons::{self, Glyph, Symbol};
 use crate::shim::theme::{self, radii, Theme, Tokens};
 
 /// `winui_theme::Color` (sRGB) to Rune's linear colour.
@@ -169,8 +169,12 @@ impl Recipe {
 pub fn glyph(s: Symbol, size: f32, color: theme::Color) -> El {
     match s.glyph() {
         Glyph::Path(d) => {
-            let vb = s.view_box();
-            rune::canvas(Shape::new().fill_svg(d, rc(color)).view_box(vb, vb)).size(size, size)
+            let rule = match s.fill_rule() {
+                icons::FillRule::EvenOdd => rune::FillRule::EvenOdd,
+                icons::FillRule::NonZero => rune::FillRule::NonZero,
+            };
+            let vb = icons::VIEWBOX;
+            rune::canvas(Shape::new().fill_svg_with(d, rule, rc(color)).view_box(vb, vb)).size(size, size)
         }
         Glyph::Font(ch) => rune::text(ch.to_string())
             .font(TextStyle::new(size, 400.0).lh(size))
@@ -229,10 +233,16 @@ pub const R_OVERLAY: f32 = radii::OVERLAY;
 
 /// A flyout / popup surface (`FlyoutPresenter`): acrylic-tinted solid, 1px flyout stroke, 8px
 /// corners, `FlyoutThemeShadow` elevation.
+/// `AcrylicBackgroundFillColorDefaultBrush`'s solid fallback (`#F9F9F9` light, `#2C2C2C`
+/// dark) until a materials backdrop is drawn behind flyouts.
+pub fn acrylic(t: &Theme) -> theme::Color {
+    if t.is_dark() { theme::Color::rgb(0x2C, 0x2C, 0x2C) } else { theme::Color::rgb(0xF9, 0xF9, 0xF9) }
+}
+
 pub fn flyout_surface(t: &Theme) -> El {
     let k = t.tokens();
     rune::col()
-        .fill(rc(k.acrylic_background_fill_color_default))
+        .fill(rc(acrylic(t)))
         .border(1.0, rc(k.surface_stroke_color_flyout))
         .radius(R_OVERLAY)
         .shadow(8.0, 16.0, rune::Color::BLACK.alpha(if t.is_dark() { 0.26 } else { 0.14 }))

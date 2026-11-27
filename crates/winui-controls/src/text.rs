@@ -233,7 +233,7 @@ impl PasswordBox {
     pub fn view(&self, t: &Theme) -> El {
         let mut f = self.field.clone().secure(self.revealed);
         if f.enabled && !f.edit.text.is_empty() {
-            let b = field_button(t, Symbol::View, format!("{}:reveal", f.key), "Reveal password");
+            let b = field_button(t, Symbol::Eye, format!("{}:reveal", f.key), "Reveal password");
             f = f.trailing(self.reveal.attach(b, !self.revealed));
         }
         f.view(t)

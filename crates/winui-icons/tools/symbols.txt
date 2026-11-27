@@ -1,0 +1,222 @@
+# Variant | Fluent asset folder | style | Segoe Fluent Icons name (or -)
+# Contract / core
+Accept | Checkmark | regular | Accept
+Add | Add | regular | Add
+Back | Arrow Left | regular | Back
+Forward | Arrow Right | regular | Forward
+Cancel | Dismiss | regular | Cancel
+CheckMark | Checkmark | regular | CheckMark
+Delete | Delete | regular | Delete
+Dismiss | Dismiss | regular | ChromeClose
+Edit | Edit | regular | Edit
+Find | Search | regular | Search
+Home | Home | regular | Home
+MoreHorizontal | More Horizontal | regular | More
+MoreVertical | More Vertical | regular | -
+Settings | Settings | regular | Settings
+Share | Share | regular | Share
+Remove | Subtract | regular | Remove
+GlobalNavigation | Navigation | regular | GlobalNavButton
+# Chevrons
+ChevronDown | Chevron Down | regular | ChevronDown
+ChevronUp | Chevron Up | regular | ChevronUp
+ChevronLeft | Chevron Left | regular | ChevronLeft
+ChevronRight | Chevron Right | regular | ChevronRight
+CaretDown | Caret Down | regular | CaretSolidDown
+CaretUp | Caret Up | regular | CaretSolidUp
+CaretLeft | Caret Left | regular | CaretSolidLeft
+CaretRight | Caret Right | regular | CaretSolidRight
+# Checks / selection
+CheckmarkCircle | Checkmark Circle | regular | Completed
+CheckboxUnchecked | Checkbox Unchecked | regular | Checkbox
+CheckboxChecked | Checkbox Checked | regular | CheckboxComposite
+CheckboxIndeterminate | Checkbox Indeterminate | regular | CheckboxIndeterminate
+RadioButton | Radio Button | regular | RadioBtnOn
+ToggleLeft | Toggle Left | regular | -
+ToggleRight | Toggle Right | regular | -
+SelectAll | Select All On | regular | SelectAll
+# Dismiss
+DismissCircle | Dismiss Circle | regular | StatusCircleErrorX
+DismissSquare | Dismiss Square | regular | -
+SubtractCircle | Subtract Circle | regular | -
+AddCircle | Add Circle | regular | -
+# Arrows
+ArrowUp | Arrow Up | regular | Up
+ArrowDown | Arrow Down | regular | Down
+ArrowUpLeft | Arrow Up Left | regular | -
+ArrowDownLeft | Arrow Down Left | regular | -
+ArrowSync | Arrow Sync | regular | Sync
+ArrowClockwise | Arrow Clockwise | regular | Rotate
+ArrowCounterclockwise | Arrow Counterclockwise | regular | -
+Refresh | Arrow Clockwise Dashes | regular | -
+Undo | Arrow Undo | regular | Undo
+Redo | Arrow Redo | regular | Redo
+Download | Arrow Download | regular | Download
+Upload | Arrow Upload | regular | Upload
+Sort | Arrow Sort | regular | Sort
+ArrowSwap | Arrow Swap | regular | -
+ArrowExport | Arrow Export LTR | regular | -
+ArrowImport | Arrow Import | regular | Import
+ArrowReply | Arrow Reply | regular | MailReply
+ArrowForward | Arrow Forward | regular | MailForward
+ArrowEnter | Arrow Enter Left | regular | -
+ArrowMaximize | Arrow Maximize | regular | -
+ArrowMinimize | Arrow Minimize | regular | -
+ArrowTrending | Arrow Trending | regular | -
+OpenInNew | Open | regular | OpenInNewWindow
+# Editing / text
+Copy | Copy | regular | Copy
+Cut | Cut | regular | Cut
+Paste | Clipboard Paste | regular | Paste
+Save | Save | regular | Save
+SaveAs | Save Edit | regular | SaveAs
+Rename | Rename | regular | Rename
+Pen | Pen | regular | Pencil
+Eraser | Eraser | regular | EraseTool
+Highlight | Highlight | regular | Highlight
+Link | Link | regular | Link
+Attach | Attach | regular | Attach
+Filter | Filter | regular | Filter
+TextBold | Text Bold | regular | Bold
+TextItalic | Text Italic | regular | Italic
+TextUnderline | Text Underline | regular | Underline
+TextStrikethrough | Text Strikethrough | regular | Strikethrough
+TextFont | Text Font | regular | Font
+TextFontSize | Text Font Size | regular | FontSize
+TextAlignLeft | Text Align Left | regular | AlignLeft
+TextAlignCenter | Text Align Center | regular | AlignCenter
+TextAlignRight | Text Align Right | regular | AlignRight
+TextAlignJustify | Text Align Justify | regular | -
+TextBulletList | Text Bullet List LTR | regular | BulletedList
+TextNumberList | Text Number List LTR | regular | -
+TextField | Text Field | regular | -
+Code | Code | regular | Code
+Document | Document | regular | Document
+DocumentAdd | Document Add | regular | -
+Folder | Folder | regular | Folder
+FolderOpen | Folder Open | regular | FolderOpen
+Print | Print | regular | Print
+Tag | Tag | regular | Tag
+Pin | Pin | regular | Pin
+Unpin | Pin Off | regular | Unpin
+Bookmark | Bookmark | regular | -
+Clipboard | Clipboard | regular | -
+Table | Table | regular | -
+ZoomIn | Zoom In | regular | ZoomIn
+ZoomOut | Zoom Out | regular | ZoomOut
+FullScreenMaximize | Full Screen Maximize | regular | FullScreen
+FullScreenMinimize | Full Screen Minimize | regular | BackToWindow
+# Media
+Play | Play | regular | Play
+Pause | Pause | regular | Pause
+Stop | Stop | regular | Stop
+Previous | Previous | regular | Previous
+Next | Next | regular | Next
+FastForward | Fast Forward | regular | FastForward
+Rewind | Rewind | regular | Rewind
+Record | Record | regular | -
+RepeatAll | Arrow Repeat All | regular | RepeatAll
+RepeatOne | Arrow Repeat 1 | regular | RepeatOne
+Shuffle | Arrow Shuffle | regular | Shuffle
+Volume | Speaker 2 | regular | Volume
+VolumeLow | Speaker 1 | regular | Volume1
+VolumeMute | Speaker Mute | regular | Mute
+Mic | Mic | regular | Microphone
+MicOff | Mic Off | regular | -
+Video | Video | regular | Video
+Camera | Camera | regular | Camera
+Image | Image | regular | Photo
+MusicNote | Music Note 2 | regular | MusicNote
+Headphones | Headphones | regular | Headphone
+ClosedCaption | Closed Caption | regular | CC
+# Status / feedback
+Info | Info | regular | Info
+Warning | Warning | regular | Warning
+ErrorCircle | Error Circle | regular | Error
+Question | Question Circle | regular | Help
+Alert | Alert | regular | Ringer
+AlertOff | Alert Off | regular | -
+Important | Important | regular | Important
+Lightbulb | Lightbulb | regular | Lightbulb
+Flag | Flag | regular | Flag
+Heart | Heart | regular | Heart
+Star | Star | regular | FavoriteStar
+StarFilled | Star | filled | FavoriteStarFill
+StarHalf | Star Half | regular | -
+ThumbLike | Thumb Like | regular | Like
+ThumbDislike | Thumb Dislike | regular | Dislike
+Emoji | Emoji | regular | Emoji
+Sparkle | Sparkle | regular | -
+Circle | Circle | regular | CircleRing
+CircleFilled | Circle | filled | CircleFill
+History | History | regular | History
+Timer | Timer | regular | -
+Clock | Clock | regular | Clock
+Calendar | Calendar LTR | regular | Calendar
+# People / comms
+Person | Person | regular | Contact
+People | People | regular | People
+PersonAdd | Person Add | regular | AddFriend
+ContactCard | Contact Card | regular | ContactInfo
+Mail | Mail | regular | Mail
+Chat | Chat | regular | Message
+Comment | Comment | regular | Comment
+Send | Send | regular | Send
+Call | Call | regular | Phone
+SignOut | Sign Out | regular | SignOut
+# Shell / window / navigation pages
+Apps | Apps | regular | AllApps
+Grid | Grid | regular | -
+List | List | regular | List
+Navigation | Compass Northwest | regular | -
+PanelLeft | Panel Left | regular | DockLeft
+Window | Window | regular | -
+SquareMultiple | Square Multiple | regular | ChromeRestore
+Maximize | Maximize | regular | ChromeMaximize
+Minimize | Line Horizontal 1 | regular | ChromeMinimize
+Tab | Tab Desktop | regular | -
+CursorClick | Cursor Click | regular | Click
+Keyboard | Keyboard | regular | KeyboardClassic
+Options | Options | regular | -
+Slider | Slide Size | regular | -
+Collections | Collections | regular | -
+Library | Library | regular | Library
+Book | Book | regular | -
+Icons | Icons | regular | -
+Color | Color | regular | Color
+PaintBrush | Paint Brush | regular | -
+Shapes | Shapes | regular | -
+Layer | Layer | regular | -
+DarkTheme | Dark Theme | regular | -
+WeatherSunny | Weather Sunny | regular | Brightness
+WeatherMoon | Weather Moon | regular | QuietHours
+Globe | Globe | regular | Globe
+Translate | Translate | regular | -
+Accessibility | Accessibility | regular | -
+Cloud | Cloud | regular | Cloud
+WiFi | WiFi 1 | regular | Wifi
+Bluetooth | Bluetooth | regular | Bluetooth
+Battery | Battery 10 | regular | Battery10
+Desktop | Desktop | regular | TVMonitor
+Phone | Phone | regular | CellPhone
+Power | Power | regular | PowerButton
+Lock | Lock Closed | regular | Lock
+Unlock | Lock Open | regular | Unlock
+Eye | Eye | regular | View
+EyeOff | Eye Off | regular | Hide
+Key | Key | regular | -
+Shield | Shield | regular | Shield
+Bug | Bug | regular | Bug
+Database | Database | regular | -
+Calculator | Calculator | regular | Calculator
+Location | Location | regular | Location
+Map | Map | regular | -
+Building | Building | regular | -
+Cart | Cart | regular | ShoppingCart
+Gift | Gift | regular | -
+Games | Games | regular | Game
+Ruler | Ruler | regular | Ruler
+Wrench | Wrench | regular | Repair
+Toolbox | Toolbox | regular | -
+Board | Board | regular | -
+Badge | Badge | regular | -

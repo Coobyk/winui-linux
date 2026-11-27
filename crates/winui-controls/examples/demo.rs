@@ -14,7 +14,7 @@ struct State {
     rating: u32,
     open: bool,
     slider: f64,
-    color: winui_controls::shim::theme::Color,
+    color: Option<winui_controls::shim::theme::Color>,
     name: rune::TextEdit,
     password: rune::TextEdit,
     number: rune::TextEdit,
@@ -53,7 +53,7 @@ fn init() -> State {
         rating: 3,
         open: true,
         slider: 40.0,
-        color: winui_controls::shim::theme::Color::rgb(0x00, 0x78, 0xD4),
+        color: Some(winui_controls::shim::theme::Color::rgb(0x00, 0x78, 0xD4)),
         name: rune::TextEdit::new("Ada Lovelace"),
         password: rune::TextEdit::new("hunter2"),
         number: rune::TextEdit::new("42"),
@@ -171,7 +171,7 @@ fn menus(s: &State, t: &Theme) -> El {
             AppBarItem::button(Symbol::Edit, "Edit"),
             AppBarItem::button(Symbol::Share, "Share"),
             AppBarItem::Separator,
-            AppBarItem::toggle(Symbol::Favorite, "Favorite", true),
+            AppBarItem::toggle(Symbol::Star, "Favorite", true),
         ]).view(t)))
         .child(section(t, "ComboBox, DropDownButton + MenuFlyout", row().gap(48.0).items_start().h(260.0)
             .child(ComboBox::new(["Blue", "Green", "Red", "Yellow"]).header("Colors").selected(s.combo).open(s.open)
@@ -245,9 +245,9 @@ fn expander(s: &State, t: &Theme) -> El {
 
 fn listview(s: &State, t: &Theme) -> El {
     section(t, "ListView", ListView::new([
-        ListItem::new("Kendall Collins").subtitle("Adatum Corporation").icon(Symbol::Contact),
-        ListItem::new("Henry Ross").subtitle("Adventure Works Cycles").icon(Symbol::Contact),
-        ListItem::new("Vance DeLeon").subtitle("Alpine Ski House").icon(Symbol::Contact),
+        ListItem::new("Kendall Collins").subtitle("Adatum Corporation").icon(Symbol::Person),
+        ListItem::new("Henry Ross").subtitle("Adventure Works Cycles").icon(Symbol::Person),
+        ListItem::new("Vance DeLeon").subtitle("Alpine Ski House").icon(Symbol::Person),
         ListItem::new("Plain row"),
     ]).selected(s.list).width(360.0).on_select(|s: &mut State, i| s.list = Some(i)).view(t))
 }
@@ -277,7 +277,7 @@ fn view(s: &State, cx: &mut Cx<State>) -> El {
     let body = match s.scene {
         "selection" => selection(s, &t),
         "slider" => slider(s, &t),
-        "colorpicker" => section(&t, "ColorPicker", ColorPicker::new(s.color).on_change(|s: &mut State, c| s.color = c).view(&t)),
+        "colorpicker" => section(&t, "ColorPicker", ColorPicker::new(s.color.unwrap_or(t.accent().base)).on_change(|s: &mut State, c| s.color = Some(c)).view(&t)),
         "text" => text(s, &t),
         "menus" => menus(s, &t),
         "navigation" => return navigation(s, &t),

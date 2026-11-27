@@ -1,4 +1,4 @@
-//! Local stand-ins for sibling crates whose contract APIs aren't on `main` yet. See the crate
-//! README's "Sibling API gaps" for what the integrator swaps in.
-pub mod icons;
-pub mod theme;
+//! The sibling crates under the names the controls use. A future API change in either crate
+//! only needs touching here and in `style`.
+pub use winui_icons as icons;
+pub use winui_theme as theme;
