@@ -97,18 +97,26 @@ impl Elevation {
     /// fill stops at the ring's inner edge (`BackgroundSizing="InnerBorderEdge"`) and the
     /// translucent stroke composites over what is behind the control, not over its fill.
     pub fn ring(&self, enabled: bool, corners: [f32; 4]) -> El {
-        let o = -INSET;
-        let pinned = || rune::el().pin(Some(0.0), Some(0.0), Some(0.0), Some(0.0)).corners(corners);
-        let outer = rune::el().pin(Some(o), Some(o), Some(o), Some(o)).corners(corners);
-        if !enabled {
-            return outer.child(pinned().border(1.0, rc(self.flat)));
+        if enabled {
+            ring(corners, -INSET, self.body, self.edge, self.edge_bottom, 1.0)
+        } else {
+            ring(corners, -INSET, self.flat, self.flat, false, 1.0)
         }
-        let (edge_sides, body_sides) =
-            if self.edge_bottom { ([0.0, 0.0, 1.0, 0.0], [1.0, 1.0, 0.0, 1.0]) } else { ([1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 1.0, 1.0]) };
-        outer
-            .child(pinned().border_sides(body_sides, rc(self.body)))
-            .child(pinned().border_sides(edge_sides, rc(self.edge)))
     }
+}
+
+/// A 1px out-of-flow ring pinned `at` points inside its parent's padding box (negative: outside),
+/// `body` on three sides and `edge` (`edge_w` wide) on the top or bottom, the way an absolute
+/// 2-3px WinUI elevation gradient lands on a 1px border.
+pub fn ring(corners: [f32; 4], at: f32, body: theme::Color, edge: theme::Color, edge_bottom: bool, edge_w: f32) -> El {
+    let pinned = || rune::el().pin(Some(0.0), Some(0.0), Some(0.0), Some(0.0)).corners(corners);
+    let (edge_sides, body_sides) =
+        if edge_bottom { ([0.0, 0.0, edge_w, 0.0], [1.0, 1.0, 0.0, 1.0]) } else { ([edge_w, 0.0, 0.0, 0.0], [0.0, 1.0, 1.0, 1.0]) };
+    rune::el()
+        .pin(Some(at), Some(at), Some(at), Some(at))
+        .corners(corners)
+        .child(pinned().border_sides(body_sides, rc(body)))
+        .child(pinned().border_sides(edge_sides, rc(edge)))
 }
 
 /// How far a bordered face sits inside its control bounds: the 1px elevation ring.

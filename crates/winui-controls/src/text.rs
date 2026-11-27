@@ -131,32 +131,40 @@ impl TextBox {
         if en {
             input = self.submit.attach(self.edits.attach(input, ()), ());
         }
+        // TextControlElevationBorderBrush: a 2px absolute gradient, flipped, so the bottom row
+        // is ControlStrongStrokeColorDefault and the rest ControlStrokeColorDefault; focused,
+        // the bottom is 2px AccentFillColorDefault (TextControlBorderThemeThicknessFocused).
+        let inset = style::INSET;
         let mut field = row()
-            .w(self.width)
-            .h(sizes::CONTROL_HEIGHT)
-            .pl(10.0)
-            .pr(if self.trailing.is_empty() { 6.0 } else { 2.0 })
+            .w(self.width - 2.0 * inset)
+            .h(sizes::CONTROL_HEIGHT - 2.0 * inset)
+            .pl(10.0 - inset)
+            .pr(if self.trailing.is_empty() { 6.0 } else { 2.0 } - inset)
             .gap(4.0)
             .center_y()
-            .radius(R)
-            .clip_rounded(R)
+            .radius(R - inset)
+            .clip_rounded(R - inset)
             .key(self.key.clone())
             .child(input)
             .children(self.trailing.iter().cloned());
-        field = match (en, self.focused) {
-            (false, _) => field.fill(rc(k.control_fill_color_disabled)).border(1.0, rc(k.control_stroke_color_default)),
-            (true, true) => field
-                .fill(rc(k.control_fill_color_input_active))
-                .border(1.0, rc(k.control_stroke_color_default))
-                .child(rune::el().absolute(0.0, sizes::CONTROL_HEIGHT - 2.0).size(self.width, 2.0).fill(rc(k.accent_fill_color_default))),
-            (true, false) => field
-                .fill(rc(k.control_fill_color_default))
-                .hover_fill(rc(k.control_fill_color_secondary))
-                .border_gradient(1.0, rc(k.control_stroke_color_default), rc(k.control_strong_stroke_color_default)),
+        let ring = match (en, self.focused) {
+            (false, _) => {
+                field = field.fill(rc(k.control_fill_color_disabled));
+                style::ring([R; 4], 0.0, k.control_stroke_color_default, k.control_stroke_color_default, true, 1.0)
+            }
+            (true, true) => {
+                field = field.fill(rc(k.control_fill_color_input_active));
+                style::ring([R; 4], 0.0, k.control_stroke_color_default, k.accent_fill_color_default, true, 2.0)
+            }
+            (true, false) => {
+                field = field.fill(rc(k.control_fill_color_default)).hover_fill(rc(k.control_fill_color_secondary));
+                style::ring([R; 4], 0.0, k.control_stroke_color_default, k.control_strong_stroke_color_default, true, 1.0)
+            }
         };
         if en {
             field = self.focus.attach(field, ());
         }
+        let field = row().padding(inset).child(field).child(ring);
         match &self.header {
             Some(h) => col().child(header(h, t, en)).child(field),
             None => field,
