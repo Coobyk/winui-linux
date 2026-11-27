@@ -350,8 +350,6 @@ fn view(s: &State, cx: &mut Cx<State>) -> El {
     }
     let t = s.theme();
     let k = t.tokens();
-    // NavigationView's Minimal mode: below 641 px the fixed pane would leave no room for the page.
-    let narrow = cx.layout_size("gallery-root").is_some_and(|[w, _]| w < 641.0);
     let content = col()
         .w_full()
         .h_full()
@@ -377,12 +375,13 @@ fn view(s: &State, cx: &mut Cx<State>) -> El {
         .border_sides([1.0, 1.0, 0.0, 0.0], c(k.card_stroke_color_default))
         .clip_corners([radii::OVERLAY, 0.0, 0.0, 0.0])
         .child(content);
-    let mut body = row().w_full().grow(1.0).min_h(0.0);
-    if !narrow {
-        body = body.child(pane(s, &t));
-    }
-    let body = body.child(frame);
-    let root = col().w_full().h_full().key("gallery-root").child(title_bar(&t)).child(body);
+    let body = row()
+        .w_full()
+        .grow(1.0)
+        .min_h(0.0)
+        .child(pane(s, &t))
+        .child(frame);
+    let root = col().w_full().h_full().child(title_bar(&t)).child(body);
     el().w_full()
         .h_full()
         .child(fluent::mica(&t).pin(Some(0.0), Some(0.0), Some(0.0), Some(0.0)))
