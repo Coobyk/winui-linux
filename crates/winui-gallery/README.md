@@ -17,6 +17,27 @@ media, styles-icons, styles-colors, styles-type, settings`. `--scene`, `--theme`
 them in release builds); `--theme` sets the system appearance the app follows until
 the settings page's theme switch overrides it. Snapshots need no display.
 
+App replicas of Windows 11 inbox apps (`src/apps/`, targets in `docs/reference/`),
+snapped at the reference size:
+
+| Scene | Reference | `--size` |
+| --- | --- | --- |
+| `calc` | `calculator.png` | `328x532` |
+| `winsettings` | `settings-system.png` | `1201x934` |
+| `store` | `store-updates.png` | `1201x928` |
+| `clock` | `clock-timer.png` | `1201x933` |
+| `clocksettings` | `clock-settings.png` | `1201x933` |
+| `snipping` | `snipping-tool.png` | `502x232` |
+| `terminal` | `terminal.png` | `1153x616` |
+
+```sh
+cargo run -p winui-gallery -- --scene calc --theme dark --size 328x532 --scale 1 --snap calc.png
+```
+
+`settings` is the gallery's own settings page; Windows Settings is `winsettings`.
+Selawik and Cascadia Mono are embedded under the SIL OFL 1.1
+(`assets/Selawik-LICENSE.txt`, `assets/CascadiaMono-LICENSE.txt`).
+
 Every colour, size and type style comes from `winui-theme` (`Tokens`, `sizes`,
 `radii`, `TypeRamp`, `AccentRamp`); every icon from `winui-icons::Symbol`.
 
