@@ -240,7 +240,7 @@ pub fn view(s: &State) -> El {
         .justify_end()
         .items_center()
         .pr(13.0)
-        .child(label(s.calc.clone(), 48.0, 600.0, WHITE).mt(14.0));
+        .child(label(s.calc.clone(), display_size(&s.calc), 600.0, WHITE).mt(14.0));
     col()
         .w_full()
         .h_full()
@@ -251,4 +251,9 @@ pub fn view(s: &State) -> El {
         .child(memory_row())
         .child(el().h(2.0))
         .child(grid())
+}
+
+/// Calculator shrinks the display font so every entered digit stays visible.
+fn display_size(v: &str) -> f32 {
+    (300.0 / (v.chars().count() as f32 * 0.56)).min(48.0)
 }
