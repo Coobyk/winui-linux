@@ -253,12 +253,13 @@ fn listview(s: &State, t: &Theme) -> El {
 }
 
 fn settings(s: &State, t: &Theme) -> El {
-    col().gap(4.0).w(880.0)
+    col().gap(4.0).max_w(880.0)
         .child(SettingsCard::new("Display").description("Monitors, brightness, night light, display profile").icon(Symbol::Desktop).clickable(true).view(t))
         .child(SettingsCard::new("Sound").description("Volume levels, output, input, sound devices").icon(Symbol::Volume).clickable(true).view(t))
         .child(SettingsCard::new("Notifications").description("Alerts from apps and system").icon(Symbol::Alert)
             .content(ToggleSwitch::new().on(s.switch).on_toggle(|s: &mut State, v| s.switch = v).view(t)).view(t))
         .child(SettingsCard::new("Power & battery").description("Sleep, battery usage, battery saver").icon(Symbol::Battery).clickable(true).view(t))
+        .child(SettingsCard::new("Storage").description("Storage space, drives, configuration rules").icon(Symbol::Desktop).clickable(true).enabled(false).view(t))
 }
 
 fn people(t: &Theme) -> El {
