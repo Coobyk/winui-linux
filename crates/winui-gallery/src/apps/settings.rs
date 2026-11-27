@@ -162,7 +162,10 @@ fn hero_image(t: &Theme) -> El {
         .w_full()
         .h_full()
         .radius(2.0)
-        .linear_gradient(135.0, [(0.0, c(a.dark3)), (1.0, c(a.dark2))])
+        .linear_gradient(
+            std::f32::consts::FRAC_PI_4 * 3.0,
+            [(0.0, c(a.dark3)), (1.0, c(a.dark2))],
+        )
         .child(glow);
     el().size(120.0, 68.0)
         .radius(radii::CONTROL)
