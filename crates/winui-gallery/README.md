@@ -42,9 +42,12 @@ replaces `crate::fallback::X` imports with the real crate and deletes the module
 | fallback | replaces | notes |
 | --- | --- | --- |
 | `fallback::theme` | `winui_theme` | `Theme`, `Tokens` (WinUI resource names lower-cased, values from `Common_themeresources_any.xaml`), `TypeRamp`, `spacing/radii/sizes`, accent ramp. Extras the contract doesn't name: `Theme::new(mode, accent)`, `Theme::accent()`, `TextStyle::rune()`, `Color::{argb,parse,to_hex}`, `body_large`. |
-| `fallback::icons` | `winui_icons` | `Symbol`/`Glyph::Path`, 87 Fluent System Icons (MIT, 20px regular + some filled). Symbol names follow the icon file names (`Dismiss`, `ChevronDown`, ...), not the contract's examples (`Accept`, `Back`, `Find`). |
+| `fallback::icons` | `winui_icons` | `Symbol`/`Glyph::Path`, 87 Fluent System Icons (20px regular + some filled; MIT, notice in `src/fallback/LICENSE-fluentui-system-icons`). Symbol names follow the icon file names (`Dismiss`, `ChevronDown`, ...), not the contract's examples (`Accept`, `Back`, `Find`). |
 | `fallback::materials` | `winui_materials` | `mica`, `acrylic`, `shadow(depth)`, `reveal`, 64×64 noise tile. |
 | `fallback::controls` | `winui_controls` | Free functions (`button`, `checkbox`, `toggle_switch`, `slider`, `info_bar`, ...) taking `&Theme`, generic over app state; not the contract's builder structs. |
 
 Known simplifications: ProgressBar/Ring indeterminate states are static; ComboBox/flyouts
-render inline rather than as Rune overlays; slider sets the value from 21 click targets.
+render inline rather than as Rune overlays; slider sets the value from 21 click targets;
+the TabView sample caps at `MAX_TABS` (4) because its strip does not scroll.
+
+The Rune dependency enables `tooling` so `--snap`/`--at` also work in release builds.

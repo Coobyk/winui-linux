@@ -15,6 +15,9 @@ fn tab(t: &Theme, i: usize, title: &str, selected: bool) -> El {
         .on_press(move |s: &mut State| {
             if s.tabs.len() > 1 {
                 s.tabs.remove(i);
+                if i < s.tab_sel {
+                    s.tab_sel -= 1;
+                }
                 s.tab_sel = s.tab_sel.min(s.tabs.len() - 1);
             }
         });
@@ -25,6 +28,9 @@ fn tab(t: &Theme, i: usize, title: &str, selected: bool) -> El {
     e = if selected { e.fill(c(tk.solid_background_fill_color_tertiary)).border(1.0, c(tk.card_stroke_color_default)) } else { materials::reveal(e, t) };
     e
 }
+
+/// Tabs that fit the strip at the minimum content width (tabs are 200 wide; the strip does not scroll).
+pub const MAX_TABS: usize = 4;
 
 pub static SAMPLES: &[Sample] = &[
     Sample { id: "navigationview", page: Page::Navigation, title: "NavigationView in Left mode", keywords: "NavigationView nav pane hamburger", view: |s, t| {
@@ -45,6 +51,9 @@ pub static SAMPLES: &[Sample] = &[
             strip = strip.child(tab(t, i, title, s.tab_sel == i));
         }
         strip = strip.child(k::icon_button(t, "tab-add", Symbol::Add, None, ButtonStyle::Subtle, |s: &mut State| {
+            if s.tabs.len() >= MAX_TABS {
+                return;
+            }
             s.tabs.push(format!("Document {}", s.next_tab));
             s.next_tab += 1;
             s.tab_sel = s.tabs.len() - 1;

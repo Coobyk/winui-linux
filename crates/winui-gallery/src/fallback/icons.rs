@@ -1,4 +1,5 @@
-//! Fallback glyphs: path data from microsoft/fluentui-system-icons (MIT), 20px regular.
+//! Fallback glyphs: path data from microsoft/fluentui-system-icons, 20px regular.
+//! Copyright (c) 2020 Microsoft Corporation, MIT; see `LICENSE-fluentui-system-icons` beside this file.
 //! Generated; mirrors the `winui_icons::Symbol` contract until that crate lands.
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

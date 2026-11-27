@@ -43,10 +43,14 @@ pub static SAMPLES: &[Sample] = &[
         let swatch = el().size(32.0, 16.0).radius(2.0).fill(c(crate::fallback::theme::Color::rgb(r, g, b)));
         k::split_button(t, "btn-split", swatch, |_: &mut State| {}, |s: &mut State| s.split_color += 1)
     }},
-    Sample { id: "dropdown-button", page: Page::Buttons, title: "A DropDownButton", keywords: "DropDownButton dropdown flyout", view: |_, t| {
+    Sample { id: "dropdown-button", page: Page::Buttons, title: "A DropDownButton", keywords: "DropDownButton dropdown flyout", view: |s, t| {
         row().gap(16.0)
-            .child(k::dropdown_button(t, "btn-dropdown", "Email", |_: &mut State| {}))
-            .child(k::button_frame(t, "btn-dropdown-icon", ButtonStyle::Standard, true, |_: &mut State| {}).px(11.0).label("Mail")
+            .child(col().gap(4.0).child(k::dropdown_button(t, "btn-dropdown", "Email", |s: &mut State| s.dropdown_open = !s.dropdown_open)).child(if s.dropdown_open {
+                k::flyout_surface(t).key("dropdown-menu").role("menu").w(160.0).py(2.0)
+                    .child(k::menu_item(t, "dropdown-send", Some(Symbol::Send), "Send", None, |s: &mut State| s.dropdown_open = false))
+                    .child(k::menu_item(t, "dropdown-reply", Some(Symbol::Mail), "Reply", None, |s: &mut State| s.dropdown_open = false))
+            } else { el() }))
+            .child(k::button_frame(t, "btn-dropdown-icon", ButtonStyle::Standard, true, |s: &mut State| s.dropdown_open = !s.dropdown_open).px(11.0).label("Mail")
                 .child(icon(Symbol::Mail, 16.0, t.tokens().text_fill_color_primary))
                 .child(icon(Symbol::ChevronDown, 12.0, t.tokens().text_fill_color_secondary)))
     }},
@@ -81,11 +85,7 @@ pub static SAMPLES: &[Sample] = &[
             .child(k::header(t, "Disabled:", k::text_box(t, "textbox-disabled", &rune::TextEdit::new(""), "Can't type here", 200.0, false, |s: &mut State| &mut s.text)))
     }},
     Sample { id: "passwordbox", page: Page::Input, title: "A PasswordBox", keywords: "PasswordBox password secret", view: |s, t| {
-        let dots: String = "\u{2022}".repeat(s.password.text.chars().count());
-        let tk = t.tokens();
-        k::header(t, "Password", row().key("passwordbox").role("textbox").label("Password").w(280.0).h(32.0).px(11.0).items_center().justify_between().radius(radii::CONTROL)
-            .fill(c(tk.control_fill_color_default)).border(1.0, c(tk.control_stroke_color_default)).shadow(1.0, 0.0, c(tk.control_strong_stroke_color_default))
-            .child(body(dots, tk.text_fill_color_primary)).child(icon(Symbol::Lightbulb, 16.0, tk.text_fill_color_secondary)))
+        k::header(t, "Password", k::password_box(t, "passwordbox", &s.password, 280.0, |s: &mut State| &mut s.password))
     }},
     Sample { id: "numberbox", page: Page::Input, title: "A NumberBox with spin buttons", keywords: "NumberBox number spin", view: |s, t| {
         k::header(t, "Enter an integer:", k::number_box(t, "numberbox", s.number, |s: &mut State, v| s.number = v))
@@ -149,11 +149,11 @@ pub static SAMPLES: &[Sample] = &[
         bar.child(el().w(1.0).h(20.0).mx(4.0).fill(c(tk.divider_stroke_color_default)))
             .child(k::icon_button(t, "cmd-more", Symbol::MoreHorizontal, None, ButtonStyle::Subtle, |_: &mut State| {}))
     }},
-    Sample { id: "flyout", page: Page::Menus, title: "A Button with a Flyout", keywords: "Flyout popup confirm", view: |_, t| {
+    Sample { id: "flyout", page: Page::Menus, title: "A Button with a Flyout", keywords: "Flyout popup confirm", view: |s, t| {
         let tk = t.tokens();
         let fly = k::flyout_surface(t).key("flyout").role("dialog").padding(16.0).gap(12.0).w(300.0)
             .child(body("All items will be removed. Do you want to continue?", tk.text_fill_color_primary))
-            .child(k::button(t, "flyout-confirm", "Yes, empty my cart", ButtonStyle::Standard, true, |_: &mut State| {}));
-        col().gap(8.0).child(k::button(t, "flyout-open", "Empty cart", ButtonStyle::Standard, true, |_: &mut State| {})).child(fly)
+            .child(k::button(t, "flyout-confirm", "Yes, empty my cart", ButtonStyle::Standard, true, |s: &mut State| s.cart_open = false));
+        col().gap(8.0).child(k::button(t, "flyout-open", "Empty cart", ButtonStyle::Standard, true, |s: &mut State| s.cart_open = !s.cart_open)).child(if s.cart_open { fly } else { el() })
     }},
 ];

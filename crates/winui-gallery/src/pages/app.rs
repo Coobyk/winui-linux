@@ -18,7 +18,7 @@ fn home(_: &State, t: &Theme) -> El {
     let mut tiles = row().key("home-tiles").w_full().gap(12.0).flex_wrap();
     for (_, group) in NAV_GROUPS.iter().skip(1) {
         for &p in group.iter() {
-            let tile = col().key(format!("tile-{}", p.id())).role("link").label(p.nav_label()).w(250.0).h(160.0).padding(24.0).gap(12.0).radius(radii::OVERLAY)
+            let tile = col().key(format!("tile-{}", p.id())).role("link").label(p.nav_label()).focusable(true).w(250.0).h(160.0).padding(24.0).gap(12.0).radius(radii::OVERLAY)
                 .fill(c(tk.card_background_fill_color_default)).border(1.0, c(tk.card_stroke_color_default))
                 .hover_fill(c(tk.control_fill_color_secondary)).press_fill(c(tk.control_fill_color_tertiary))
                 .child(icon(p.icon(), 32.0, tk.accent_text_fill_color_primary))

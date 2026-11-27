@@ -2,7 +2,7 @@ use rune::{App, Env};
 use winui_gallery::fallback::theme::ThemeMode;
 use winui_gallery::{ACCENTS, Page, SCENES, State, pages, spec};
 
-const SIZE: (f32, f32) = (1280.0, 800.0);
+const SIZE: (f32, f32) = (1280.0, 1600.0);
 
 fn runtime(dark: bool, f: impl FnOnce(&mut State)) -> rune::runtime::Runtime<State> {
     let mut sp = spec();
@@ -104,6 +104,53 @@ fn sample_interactions() {
 
 #[test]
 fn rune_args_strip_separator() {
-    let a = winui_gallery::rune_args(["g", "--scene", "home", "--", "--size", "800x600"].map(String::from));
-    assert_eq!(a, ["g", "--scene", "home", "--size", "800x600"]);
+    let a = winui_gallery::rune_args(["g", "--scene", "home", "--", "--size", "800x600", "--"].map(String::from));
+    assert_eq!(a, ["--scene", "home", "--size", "800x600", "--"]);
+}
+
+#[test]
+fn closing_earlier_tab_keeps_active_document() {
+    let mut rt = runtime(false, |s| {
+        s.page = Page::Navigation;
+        s.tab_sel = 2;
+    });
+    click(&mut rt, "tab-0-close");
+    assert_eq!(rt.state.tabs[rt.state.tab_sel], "Document 2");
+    for _ in 0..5 {
+        click(&mut rt, "tab-add");
+    }
+    assert_eq!(rt.state.tabs.len(), winui_gallery::pages::MAX_TABS);
+}
+
+#[test]
+fn flyouts_open_and_close() {
+    let mut rt = runtime(false, |s| s.page = Page::Buttons);
+    assert!(!has_key(&rt, "dropdown-menu"));
+    click(&mut rt, "btn-dropdown");
+    assert!(has_key(&rt, "dropdown-menu"));
+    click(&mut rt, "dropdown-send");
+    assert!(!rt.state.dropdown_open);
+    let mut rt = runtime(false, |s| s.page = Page::Menus);
+    assert!(!has_key(&rt, "flyout"));
+    click(&mut rt, "flyout-open");
+    click(&mut rt, "flyout-confirm");
+    assert!(!rt.state.cart_open);
+}
+
+#[test]
+fn icon_search_by_name_and_keyword() {
+    assert!(pages::search("star").iter().any(|s| s.id == "icons"));
+    let rt = runtime(false, |s| s.set_search("glyph"));
+    assert!(has_key(&rt, "icon-Home"));
+}
+
+#[test]
+fn each_page_has_its_own_scroller() {
+    let mut rt = runtime(false, |_| {});
+    assert!(has_key(&rt, "scroll-home"));
+    click(&mut rt, "nav-media");
+    for i in 1..=4 {
+        rt.frame(i as f64);
+    }
+    assert!(has_key(&rt, "scroll-media") && !has_key(&rt, "scroll-home"));
 }

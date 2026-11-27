@@ -7,11 +7,17 @@ use crate::fallback::theme::{Color, TYPE_RAMP, TextStyle, Theme, radii};
 use crate::state::{Page, State};
 use rune::{El, col, el, row, text};
 
-/// Icons whose name matches the query (all when empty or when the query names the page).
-pub fn icons_matching(q: &str) -> Vec<Symbol> {
+/// Icons whose name contains the query.
+pub fn icons_named(q: &str) -> Vec<Symbol> {
     let q = q.trim().to_lowercase();
-    let page_terms = ["icon", "icons", "iconography", "symbol"];
-    Symbol::ALL.iter().copied().filter(|s| q.is_empty() || page_terms.iter().any(|t| t.contains(q.as_str()) || q.contains(t)) || s.name().to_lowercase().contains(&q)).collect()
+    Symbol::ALL.iter().copied().filter(|s| s.name().to_lowercase().contains(&q)).collect()
+}
+
+/// The icons the grid shows: name matches, or all when nothing matches by name (empty query, or
+/// the Icons sample was found by its own title or keywords).
+pub fn icons_matching(q: &str) -> Vec<Symbol> {
+    let hits = icons_named(q);
+    if hits.is_empty() { Symbol::ALL.to_vec() } else { hits }
 }
 
 fn icons_grid(s: &State, t: &Theme) -> El {

@@ -99,6 +99,7 @@ fn nav_pane(s: &State, theme: &Theme) -> El {
 fn content_frame(s: &State, theme: &Theme) -> El {
     let t = theme.tokens();
     let page = if s.query().is_empty() { pages::page_view(s, theme, s.page) } else { pages::search_results(s, theme) };
+    let scroll_key = if s.query().is_empty() { format!("scroll-{}", s.page.id()) } else { "scroll-search".to_string() };
     col()
         .key("content")
         .grow(1.0)
@@ -107,7 +108,6 @@ fn content_frame(s: &State, theme: &Theme) -> El {
         .border(1.0, c(t.card_stroke_color_default))
         .corners([radii::OVERLAY, 0.0, 0.0, 0.0])
         .clip_rounded(radii::OVERLAY)
-        .scroll(ScrollSpec::default())
-        .child(page)
+        // Keyed per page so each page opens at its top.
+        .child(col().key(scroll_key).w_full().grow(1.0).scroll(ScrollSpec::default()).child(page))
 }
-

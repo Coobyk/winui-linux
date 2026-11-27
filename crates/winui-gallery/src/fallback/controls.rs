@@ -136,7 +136,7 @@ pub fn dropdown_button<S: 'static>(theme: &Theme, key: &str, label: &str, on: im
 /// `SplitButton`: primary part + secondary chevron part, 1px divider.
 pub fn split_button<S: 'static>(theme: &Theme, key: &str, content: El, on_main: impl Fn(&mut S) + 'static, on_more: impl Fn(&mut S) + 'static) -> El {
     let t = theme.tokens();
-    let main = button_frame(theme, &format!("{key}-main"), ButtonStyle::Standard, true, on_main).px(11.0).corners([radii::CONTROL, 0.0, 0.0, radii::CONTROL]).child(content);
+    let main = button_frame(theme, &format!("{key}-main"), ButtonStyle::Standard, true, on_main).px(11.0).corners([radii::CONTROL, 0.0, 0.0, radii::CONTROL]).label("Apply").child(content);
     let more = button_frame(theme, &format!("{key}-more"), ButtonStyle::Standard, true, on_more)
         .w(36.0)
         .corners([0.0, radii::CONTROL, radii::CONTROL, 0.0])
@@ -270,6 +270,11 @@ pub fn text_box<S: 'static>(theme: &Theme, key: &str, edit: &TextEdit, placehold
     }
 }
 
+/// `PasswordBox`: a masked single-line field.
+pub fn password_box<S: 'static>(theme: &Theme, key: &str, edit: &TextEdit, width: f32, bind: fn(&mut S) -> &mut TextEdit) -> El {
+    text_box(theme, key, edit, "Password", width, true, bind).secure()
+}
+
 /// A labelled field (`Header` above a control).
 pub fn header(theme: &Theme, label: &str, control: El) -> El {
     col().gap(8.0).child(body(label, theme.tokens().text_fill_color_primary)).child(control)
@@ -345,7 +350,7 @@ pub fn menu_separator(theme: &Theme) -> El {
 pub fn list_row<S: 'static>(theme: &Theme, key: &str, height: f32, selected: bool, content: El, on: impl Fn(&mut S) + 'static) -> El {
     let t = theme.tokens();
     let pill = el().size(3.0, 16.0).radius(1.5).fill(c(if selected { t.accent_fill_color_default } else { t.subtle_fill_color_transparent }));
-    let mut r = row().key(key).role("option").checked(selected).h(height).mx(4.0).my(2.0).pr(12.0).gap(0.0).items_center().radius(radii::CONTROL).on_press(on);
+    let mut r = row().key(key).role("option").checked(selected).h(height).mx(4.0).my(2.0).pr(12.0).gap(0.0).items_center().radius(radii::CONTROL).focusable(true).on_press(on);
     if selected {
         r = r.fill(c(t.subtle_fill_color_secondary)).hover_fill(c(t.subtle_fill_color_tertiary));
     } else {

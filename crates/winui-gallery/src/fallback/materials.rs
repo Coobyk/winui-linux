@@ -1,7 +1,7 @@
 //! Fallback for the `winui-materials` contract: Mica, Acrylic, elevation shadows, noise.
 
 use super::theme::{Color, Theme};
-use rune::{El, Pixels, Shadow, el};
+use rune::{col, El, Pixels, Shadow, el};
 
 const NOISE_SIDE: u32 = 64;
 
@@ -54,7 +54,7 @@ pub fn acrylic_color(theme: &Theme, tint: Color, tint_opacity: f32, luminosity_o
 /// Translucent noise-blended panel. Add children to the returned element.
 pub fn acrylic(theme: &Theme, tint: Color, tint_opacity: f32, luminosity_opacity: f32) -> El {
     let c = acrylic_color(theme, tint, tint_opacity, luminosity_opacity);
-    el().fill(c.into()).backdrop_blur(30.0).child(noise_layer(0.02))
+    col().fill(c.into()).backdrop_blur(30.0).child(noise_layer(0.02))
 }
 
 /// The theme's default acrylic (AcrylicBackgroundFillColorDefaultBrush).

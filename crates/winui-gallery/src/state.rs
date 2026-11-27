@@ -191,6 +191,8 @@ pub struct State {
     // Status
     pub infobars: [bool; 4],
     pub tip_open: bool,
+    pub dropdown_open: bool,
+    pub cart_open: bool,
     // Media
     pub expander_open: bool,
     pub playing: bool,
@@ -231,6 +233,8 @@ impl Default for State {
             selector: 0,
             infobars: [true; 4],
             tip_open: true,
+            dropdown_open: false,
+            cart_open: false,
             expander_open: true,
             playing: false,
         }

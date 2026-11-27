@@ -5,6 +5,8 @@ mod basic;
 mod more;
 mod styles;
 
+pub use more::MAX_TABS;
+
 use crate::fallback::controls::{body, caption, strong};
 use crate::fallback::theme::{Color, TYPE_RAMP, Theme, radii};
 use crate::state::{Page, State};
@@ -46,7 +48,7 @@ pub fn search(q: &str) -> Vec<&'static Sample> {
     if q.trim().is_empty() {
         return Vec::new();
     }
-    samples().filter(|s| s.matches(q)).collect()
+    samples().filter(|s| s.matches(q) || (s.id == "icons" && !styles::icons_named(q).is_empty())).collect()
 }
 
 pub fn page_header(theme: &Theme, title: &str, description: &str) -> El {

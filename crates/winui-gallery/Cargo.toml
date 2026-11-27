@@ -4,7 +4,7 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-rune.workspace = true
+rune = { workspace = true, features = ["tooling"] }
 anyhow.workspace = true
 winui-theme = { path = "../winui-theme" }
 winui-icons = { path = "../winui-icons" }

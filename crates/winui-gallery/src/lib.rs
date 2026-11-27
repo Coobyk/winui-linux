@@ -37,6 +37,15 @@ pub fn spec() -> AppSpec<State> {
 }
 
 /// argv for Rune: everything after a bare `--` is passed through verbatim.
+/// Rune's argv from the process's: drops the program name and the first bare `--`.
 pub fn rune_args(argv: impl IntoIterator<Item = String>) -> Vec<String> {
-    argv.into_iter().filter(|a| a != "--").collect()
+    let mut seen = false;
+    argv.into_iter()
+        .skip(1)
+        .filter(|a| {
+            let sep = !seen && a == "--";
+            seen |= sep;
+            !sep
+        })
+        .collect()
 }
