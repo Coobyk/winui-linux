@@ -51,6 +51,8 @@ impl SettingsCard {
         self.clickable = on;
         self
     }
+    /// Disables the card itself (text, icon, chevron, click). Trailing [`Self::content`] is
+    /// built by the caller: pass it disabled too, as WinUI's `IsEnabled` would propagate.
     pub fn enabled(mut self, on: bool) -> Self {
         self.disabled = !on;
         self

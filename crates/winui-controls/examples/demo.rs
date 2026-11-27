@@ -259,7 +259,8 @@ fn settings(s: &State, t: &Theme) -> El {
         .child(SettingsCard::new("Notifications").description("Alerts from apps and system").icon(Symbol::Alert)
             .content(ToggleSwitch::new().on(s.switch).on_toggle(|s: &mut State, v| s.switch = v).view(t)).view(t))
         .child(SettingsCard::new("Power & battery").description("Sleep, battery usage, battery saver").icon(Symbol::Battery).clickable(true).view(t))
-        .child(SettingsCard::new("Storage").description("Storage space, drives, configuration rules").icon(Symbol::Desktop).clickable(true).enabled(false).view(t))
+        .child(SettingsCard::new("Storage").description("Storage space, drives, configuration rules").icon(Symbol::Desktop).enabled(false)
+            .content(ToggleSwitch::new().on(true).enabled(false).view(t)).view(t))
 }
 
 fn people(t: &Theme) -> El {
