@@ -153,6 +153,7 @@ impl State {
             ThemeMode::Light
         })
     }
+    #[cfg(test)]
     pub fn toggle_theme(&mut self) {
         self.theme = Some(self.mode().toggled());
     }

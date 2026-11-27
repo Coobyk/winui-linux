@@ -441,9 +441,11 @@ fn settings_page(s: &State, t: &Theme) -> El {
             .child(ctl)
     };
     let dark = t.is_dark();
+    let next = t.mode().toggled();
     let theme_switch = toggle_switch(t, dark, None)
         .key("theme-toggle")
-        .on_press(|s: &mut State| s.toggle_theme());
+        .focusable(true)
+        .on_press(move |s: &mut State| s.theme = Some(next));
     let mut sw = row().gap(4.0);
     for (i, (name, col_)) in crate::ACCENTS.iter().enumerate() {
         let mut b = el()
