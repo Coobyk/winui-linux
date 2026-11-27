@@ -1,352 +1,347 @@
-//! Navigation: NavigationView (left expanded + compact), TabView,
-//! BreadcrumbBar-lite. Matches "Navigation" Gallery samples.
+//! Navigation: `NavigationView`, `TabView`, `BreadcrumbBar`-lite (WinUI Gallery ›
+//! Navigation).
+use std::rc::Rc;
 
-use rune::{El, col, el, row, text};
-use winui_icons::Symbol;
-use winui_materials::rc;
-use winui_theme::{Theme, sizes};
+use rune::{col, row, El};
 
-use crate::{body, caption, glyph};
+use crate::content::InfoBadge;
+use crate::impl_control;
+use crate::menus::selection_pill;
+use crate::shim::icons::Symbol;
+use crate::shim::theme::{sizes, Theme};
+use crate::style::{self, focus_rect, glyph, rc, Hook, R, R_OVERLAY};
 
-/// One NavigationView item: Fluent glyph + label.
+/// One `NavigationViewItem`.
 #[derive(Clone, Debug)]
 pub struct NavItem {
+    pub icon: Symbol,
     pub label: String,
-    pub symbol: Symbol,
-    pub selected: bool,
-    /// Small header-style item (uppercase caption, not clickable).
-    pub header: bool,
+    pub badge: Option<u32>,
 }
 
 impl NavItem {
-    pub fn new(label: impl Into<String>, symbol: Symbol) -> Self {
-        Self { label: label.into(), symbol, selected: false, header: false }
+    pub fn new(icon: Symbol, label: impl Into<String>) -> Self {
+        NavItem { icon, label: label.into(), badge: None }
     }
-    pub fn selected(mut self, on: bool) -> Self {
-        self.selected = on;
+    pub fn badge(mut self, n: u32) -> Self {
+        self.badge = Some(n);
         self
-    }
-    /// A group header ("Apps", "Styles") — caption text, no icon row.
-    pub fn header(label: impl Into<String>) -> Self {
-        Self { label: label.into(), symbol: Symbol::Circle, selected: false, header: true }
-    }
-
-    pub fn view(&self, theme: &Theme, expanded: bool) -> El {
-        let t = theme.tokens();
-        if self.header {
-            return el().w_full().h(28.0).center_y().pl(12.0).child(
-                text(self.label.clone())
-                    .font(caption())
-                    .color(rc(t.text_fill_color_tertiary))
-                    .nowrap(),
-            );
-        }
-        let mut e = el().w_full()
-            .h(sizes::NAV_ITEM_HEIGHT)
-            .mx(4.0)
-            .radius(4.0)
-            .role("link")
-            .label(self.label.clone())
-            .child(
-                row().items_center()
-                    .child(
-                        el().w(sizes::NAV_ICON_BOX_WIDTH)
-                            .h_full()
-                            .center()
-                            .child(glyph(self.symbol, sizes::NAV_ICON_SIZE, rc(t.text_fill_color_primary))),
-                    )
-                    .children(if expanded {
-                        Some(text(self.label.clone()).font(body()).color(rc(t.text_fill_color_primary)).nowrap())
-                    } else {
-                        None
-                    }),
-            );
-        if self.selected {
-            e = e.fill(rc(t.subtle_fill_color_secondary)).child(
-                el().absolute(0.0, (sizes::NAV_ITEM_HEIGHT - sizes::NAV_SELECTION_INDICATOR_HEIGHT) / 2.0)
-                    .size(sizes::NAV_SELECTION_INDICATOR_WIDTH, sizes::NAV_SELECTION_INDICATOR_HEIGHT)
-                    .radius(2.0)
-                    .fill(rc(t.accent_fill_color_default)),
-            );
-        } else {
-            e = e.hover_fill(winui_materials::reveal_fill(theme))
-                .press_fill(rc(t.subtle_fill_color_tertiary))
-                .cursor(rune::Cursor::Pointer);
-        }
-        e
     }
 }
 
-/// The NavigationView shell: acrylic pane with hamburger, header, items and a
-/// pinned Settings footer. `expanded` = open 320px pane; `false` = 48px rail.
-#[derive(Clone, Debug, Default)]
+/// `NavigationView` — Gallery "NavigationView" (`PaneDisplayMode="Left"`): a 320px pane (48px
+/// compact) of 36px subtle items with the accent selection pill, a hamburger toggle, a
+/// Settings footer item and the content on a `LayerFillColorDefault` surface with an 8px
+/// top-left corner.
+#[derive(Clone)]
 pub struct NavigationView {
-    pub header: String,
-    pub items: Vec<NavItem>,
-    /// Footer items pinned to the bottom (Settings by convention).
-    pub footer: Vec<NavItem>,
-    pub expanded: bool,
-    /// Show the AutoSuggestBox row under the hamburger.
-    pub search: bool,
+    items: Vec<NavItem>,
+    footer: Vec<NavItem>,
+    selected: usize,
+    pane_open: bool,
+    header: Option<String>,
+    settings: bool,
+    content: Rc<dyn Fn(&Theme) -> El>,
+    select: Hook<usize>,
+    toggle: Hook<bool>,
 }
 
 impl NavigationView {
-    pub fn new(header: impl Into<String>) -> Self {
-        Self {
-            header: header.into(),
-            items: Vec::new(),
+    pub fn new(items: impl IntoIterator<Item = NavItem>) -> Self {
+        NavigationView {
+            items: items.into_iter().collect(),
             footer: Vec::new(),
-            expanded: true,
-            search: true,
+            selected: 0,
+            pane_open: true,
+            header: None,
+            settings: true,
+            content: Rc::new(|_| rune::el()),
+            select: Hook::default(),
+            toggle: Hook::default(),
         }
     }
-    pub fn items(mut self, items: Vec<NavItem>) -> Self {
-        self.items = items;
+    pub fn footer(mut self, items: impl IntoIterator<Item = NavItem>) -> Self {
+        self.footer = items.into_iter().collect();
         self
     }
-    pub fn footer(mut self, items: Vec<NavItem>) -> Self {
-        self.footer = items;
+    /// Index across `items`, then `footer`, then Settings.
+    pub fn selected(mut self, i: usize) -> Self {
+        self.selected = i;
         self
     }
-    pub fn expanded(mut self, on: bool) -> Self {
-        self.expanded = on;
+    pub fn pane_open(mut self, on: bool) -> Self {
+        self.pane_open = on;
         self
     }
-
-    pub fn view(&self, theme: &Theme) -> El {
-        let t = theme.tokens();
-        let pane_w = if self.expanded {
-            sizes::NAV_OPEN_PANE_LENGTH
-        } else {
-            sizes::NAV_COMPACT_PANE_LENGTH
-        };
-        let mut pane = col().w(pane_w).h_full().py(4.0);
-
-        // Hamburger + header.
-        pane = pane.child(
-            row().items_center().h(sizes::NAV_PANE_HEADER_MIN_HEIGHT).child(
-                el().size(sizes::PANE_TOGGLE_BUTTON_WIDTH, sizes::PANE_TOGGLE_BUTTON_HEIGHT)
-                    .center()
-                    .radius(4.0)
-                    .mx(4.0)
-                    .role("button")
-                    .label("Toggle navigation")
-                    .hover_fill(winui_materials::reveal_fill(theme))
-                    .cursor(rune::Cursor::Pointer)
-                    .child(glyph(Symbol::GlobalNavigation, 16.0, rc(t.text_fill_color_primary))),
-            ),
-        );
-
-        if self.search {
-            let box_w = pane_w - 16.0;
-            pane = pane.child(
-                el().w(box_w)
-                    .h(32.0)
-                    .mx(8.0)
-                    .mb(4.0)
-                    .radius(4.0)
-                    .fill(rc(t.control_fill_color_input_active))
-                    .border(1.0, rc(t.control_stroke_color_secondary))
-                    .clip_rounded(4.0)
-                    .child(
-                        row().items_center().w_full().pl(10.0)
-                            .children(if self.expanded {
-                                Some(
-                                    text("Search")
-                                        .font(body())
-                                        .color(rc(t.text_fill_color_tertiary))
-                                        .grow(1.0),
-                                )
-                            } else {
-                                None
-                            })
-                            .child(
-                                el().w(30.0).h_full().center().child(
-                                    glyph(Symbol::Find, 12.0, rc(t.text_fill_color_secondary)),
-                                ),
-                            ),
-                    )
-                    .child(
-                        el().absolute(0.0, 31.0)
-                            .w_full()
-                            .h(1.0)
-                            .fill(rc(t.control_strong_stroke_color_default)),
-                    ),
-            );
+    pub fn header(mut self, h: impl Into<String>) -> Self {
+        self.header = Some(h.into());
+        self
+    }
+    pub fn settings(mut self, on: bool) -> Self {
+        self.settings = on;
+        self
+    }
+    pub fn content(mut self, f: impl Fn(&Theme) -> El + 'static) -> Self {
+        self.content = Rc::new(f);
+        self
+    }
+    pub fn on_select<S: 'static>(mut self, f: impl Fn(&mut S, usize) + 'static) -> Self {
+        self.select.press(f);
+        self
+    }
+    pub fn on_toggle_pane<S: 'static>(mut self, f: impl Fn(&mut S, bool) + 'static) -> Self {
+        self.toggle.press(f);
+        self
+    }
+    fn item(&self, t: &Theme, i: usize, it: &NavItem) -> El {
+        let k = t.tokens();
+        let sel = self.selected == i;
+        let mut r = row()
+            .h(36.0)
+            .mx(4.0)
+            .my(2.0)
+            .pl(12.0)
+            .pr(8.0)
+            .gap(16.0)
+            .center_y()
+            .radius(R)
+            .fill(rc(if sel { k.subtle_fill_color_secondary } else { k.subtle_fill_color_transparent }))
+            .hover_fill(rc(if sel { k.subtle_fill_color_tertiary } else { k.subtle_fill_color_secondary }))
+            .press_fill(rc(k.subtle_fill_color_tertiary))
+            .press_color(rc(k.text_fill_color_secondary))
+            .child(glyph(it.icon, 16.0, k.text_fill_color_primary));
+        if self.pane_open {
+            r = r.child(rune::text(it.label.clone()).font(style::body(t)).color(rc(k.text_fill_color_primary)).grow(1.0));
+            if let Some(n) = it.badge {
+                r = r.child(InfoBadge::value(n).view(t));
+            }
         }
-
-        let mut items = col().w_full().grow(1.0);
-        for item in &self.items {
-            items = items.child(item.view(theme, self.expanded));
+        if sel {
+            r = r.child(selection_pill(t, 0.0, 10.0));
         }
-        pane = pane.child(items);
-
-        for item in &self.footer {
-            pane = pane.child(item.view(theme, self.expanded));
+        let r = focus_rect(r, t, R).role("tab").checked(sel).label(it.label.clone()).key(format!("nav:{}", it.label));
+        self.select.attach(r, i)
+    }
+    pub fn view(&self, t: &Theme) -> El {
+        let k = t.tokens();
+        let width = if self.pane_open { sizes::NAV_OPEN_PANE_LENGTH } else { sizes::NAV_COMPACT_PANE_LENGTH };
+        let toggle = row()
+            .size(40.0, 36.0)
+            .mx(4.0)
+            .my(2.0)
+            .center()
+            .radius(R)
+            .fill(rc(k.subtle_fill_color_transparent))
+            .hover_fill(rc(k.subtle_fill_color_secondary))
+            .press_fill(rc(k.subtle_fill_color_tertiary))
+            .child(glyph(Symbol::GlobalNavigation, 16.0, k.text_fill_color_primary))
+            .role("button")
+            .label(if self.pane_open { "Close Navigation" } else { "Open Navigation" })
+            .expanded(self.pane_open)
+            .key("nav:toggle");
+        let toggle = self.toggle.attach(focus_rect(toggle, t, R), !self.pane_open);
+        let mut top = col().pt(4.0).child(toggle);
+        for (i, it) in self.items.iter().enumerate() {
+            top = top.child(self.item(t, i, it));
         }
-
-        el().key("navview")
+        let mut bottom = col().pb(4.0);
+        let n = self.items.len();
+        for (j, it) in self.footer.iter().enumerate() {
+            bottom = bottom.child(self.item(t, n + j, it));
+        }
+        if self.settings {
+            bottom = bottom.child(self.item(t, n + self.footer.len(), &NavItem::new(Symbol::Settings, "Settings")));
+        }
+        let pane = col().w(width).h_full().justify_between().child(top).child(bottom).role("navigation");
+        let mut page = col()
+            .grow(1.0)
             .h_full()
-            .child(
-                el().h_full()
-                    .w(pane_w + 8.0)
-                    .child(winui_materials::nav_acrylic(theme))
-                    .child(
-                        el().w_full().h_full().absolute(0.0, 0.0).child(pane),
-                    ),
-            )
+            .fill(rc(k.layer_fill_color_default))
+            .border_sides([1.0, 1.0, 0.0, 0.0], rc(k.card_stroke_color_default))
+            .corners([R_OVERLAY, 0.0, 0.0, 0.0])
+            .padding(36.0)
+            .pt(24.0)
+            .gap(24.0)
+            .key("nav:content");
+        if let Some(h) = &self.header {
+            page = page.child(rune::text(h.clone()).font(style::font(t.type_ramp().title)).color(rc(k.text_fill_color_primary)));
+        }
+        row().w_full().h_full().child(pane).child(page.child((self.content)(t)))
     }
 }
 
-/// One TabView tab.
+/// One `TabViewItem`.
 #[derive(Clone, Debug)]
 pub struct Tab {
-    pub title: String,
-    pub symbol: Option<Symbol>,
-    pub selected: bool,
+    pub header: String,
+    pub icon: Option<Symbol>,
     pub closable: bool,
 }
 
 impl Tab {
-    pub fn new(title: impl Into<String>) -> Self {
-        Self { title: title.into(), symbol: None, selected: false, closable: true }
+    pub fn new(header: impl Into<String>) -> Self {
+        Tab { header: header.into(), icon: None, closable: true }
     }
-    pub fn symbol(mut self, s: Symbol) -> Self {
-        self.symbol = Some(s);
+    pub fn icon(mut self, s: Symbol) -> Self {
+        self.icon = Some(s);
         self
     }
-    pub fn selected(mut self, on: bool) -> Self {
-        self.selected = on;
+    pub fn closable(mut self, on: bool) -> Self {
+        self.closable = on;
         self
-    }
-
-    fn view(&self, theme: &Theme) -> El {
-        let t = theme.tokens();
-        let pad = sizes::TAB_ITEM_PADDING;
-        let mut content = row().items_center().h_full().pl(10.0).pr(4.0).gap(6.0);
-        if let Some(sym) = self.symbol {
-            content = content.child(glyph(sym, 12.0, rc(t.text_fill_color_primary)));
-        }
-        content = content
-            .child(
-                text(self.title.clone())
-                    .font(rune::TextStyle::new(sizes::TAB_HEADER_FONT_SIZE, 400.0))
-                    .color(rc(if self.selected {
-                        t.text_fill_color_primary
-                    } else {
-                        t.text_fill_color_secondary
-                    }))
-                    .nowrap(),
-            )
-            .child(
-                el().size(20.0, 20.0)
-                    .center()
-                    .radius(4.0)
-                    .role("button")
-                    .label(format!("Close {}", self.title))
-                    .hover_fill(rc(t.subtle_fill_color_tertiary))
-                    .child(glyph(Symbol::Dismiss, 8.0, rc(t.text_fill_color_secondary))),
-            );
-        let _ = pad;
-        let mut e = el().min_w(sizes::TAB_ITEM_MIN_WIDTH)
-            .max_w(sizes::TAB_ITEM_MAX_WIDTH)
-            .h(sizes::TAB_ITEM_MIN_HEIGHT)
-            .child(content);
-        if self.selected {
-            e = e.fill(rc(t.layer_fill_color_default))
-                .corners([4.0, 4.0, 0.0, 0.0])
-                .child(
-                    el().absolute(0.0, sizes::TAB_ITEM_MIN_HEIGHT - 1.0)
-                        .w_full()
-                        .h(1.0)
-                        .fill(rc(t.layer_fill_color_default)),
-                );
-        } else {
-            e = e.corners([4.0, 4.0, 0.0, 0.0])
-                .hover_fill(rc(t.subtle_fill_color_secondary))
-                .cursor(rune::Cursor::Pointer);
-        }
-        e
     }
 }
 
-/// A TabView strip on the mica-alt band: tabs + a trailing "add" button.
-#[derive(Clone, Debug, Default)]
+/// `TabView` — Gallery "TabView": 32px tabs (100–240px wide) whose selected tab joins the
+/// content surface with 8px top corners, hover fills on the rest, 1px separators, close and
+/// add buttons.
+#[derive(Clone)]
 pub struct TabView {
-    pub tabs: Vec<Tab>,
+    tabs: Vec<Tab>,
+    selected: usize,
+    add: bool,
+    content: Rc<dyn Fn(&Theme, usize) -> El>,
+    select: Hook<usize>,
+    close: Hook<usize>,
+    add_tab: Hook<()>,
 }
 
 impl TabView {
-    pub fn new(tabs: Vec<Tab>) -> Self {
-        Self { tabs }
-    }
-    pub fn view(&self, theme: &Theme) -> El {
-        let t = theme.tokens();
-        let mut strip = row().items_end().h(40.0).px(4.0);
-        for (i, tab) in self.tabs.iter().enumerate() {
-            strip = strip.child(tab.view(theme).key(format!("tab-{i}")));
+    pub fn new(tabs: impl IntoIterator<Item = Tab>) -> Self {
+        TabView {
+            tabs: tabs.into_iter().collect(),
+            selected: 0,
+            add: true,
+            content: Rc::new(|_, _| rune::el()),
+            select: Hook::default(),
+            close: Hook::default(),
+            add_tab: Hook::default(),
         }
-        strip = strip.child(
-            el().size(28.0, 28.0)
-                .mb(4.0)
-                .center()
-                .radius(4.0)
-                .role("button")
-                .label("New tab")
-                .hover_fill(rc(t.subtle_fill_color_secondary))
-                .cursor(rune::Cursor::Pointer)
-                .child(glyph(Symbol::Add, 12.0, rc(t.text_fill_color_primary))),
-        );
-        el().w_full()
-            .fill(rc(t.solid_background_fill_color_base_alt))
-            .child(strip)
-            .child(
-                el().absolute(0.0, 39.0).w_full().h(1.0).fill(rc(t.divider_stroke_color_default)),
-            )
+    }
+    pub fn selected(mut self, i: usize) -> Self {
+        self.selected = i;
+        self
+    }
+    pub fn add_button(mut self, on: bool) -> Self {
+        self.add = on;
+        self
+    }
+    /// Content for the selected tab.
+    pub fn content(mut self, f: impl Fn(&Theme, usize) -> El + 'static) -> Self {
+        self.content = Rc::new(f);
+        self
+    }
+    pub fn on_select<S: 'static>(mut self, f: impl Fn(&mut S, usize) + 'static) -> Self {
+        self.select.press(f);
+        self
+    }
+    pub fn on_close<S: 'static>(mut self, f: impl Fn(&mut S, usize) + 'static) -> Self {
+        self.close.press(f);
+        self
+    }
+    pub fn on_add<S: 'static>(mut self, f: impl Fn(&mut S) + 'static) -> Self {
+        self.add_tab.press(move |s: &mut S, ()| f(s));
+        self
+    }
+    fn small_button(t: &Theme, s: Symbol, w: f32, h: f32, key: String, label: &str) -> El {
+        let k = t.tokens();
+        let b = rune::el()
+            .size(w, h)
+            .center()
+            .radius(R)
+            .fill(rc(k.subtle_fill_color_transparent))
+            .hover_fill(rc(k.subtle_fill_color_secondary))
+            .press_fill(rc(k.subtle_fill_color_tertiary))
+            .child(glyph(s, if h < 28.0 { 12.0 } else { 16.0 }, k.text_fill_color_secondary))
+            .role("button")
+            .label(label.to_owned())
+            .key(key);
+        focus_rect(b, t, R)
+    }
+    pub fn view(&self, t: &Theme) -> El {
+        let k = t.tokens();
+        let surface = k.solid_background_fill_color_tertiary;
+        let mut strip = row().h(40.0).pl(8.0).pt(8.0).items_end().role("tablist");
+        for (i, tab) in self.tabs.iter().enumerate() {
+            let sel = i == self.selected;
+            let mut r = row().h(32.0).min_w(100.0).max_w(240.0).pl(8.0).pr(4.0).gap(8.0).center_y().corners([R_OVERLAY, R_OVERLAY, 0.0, 0.0]);
+            let fg = if sel { k.text_fill_color_primary } else { k.text_fill_color_secondary };
+            if let Some(ic) = tab.icon {
+                r = r.child(glyph(ic, 16.0, fg));
+            }
+            r = r.child(rune::text(tab.header.clone()).font(style::body(t)).color(rc(fg)).grow(1.0));
+            if tab.closable {
+                r = r.child(self.close.attach(Self::small_button(t, Symbol::Dismiss, 24.0, 24.0, format!("tab:{i}:close"), "Close tab"), i));
+            }
+            r = if sel {
+                r.fill(rc(surface)).border_sides([1.0, 1.0, 1.0, 0.0], rc(k.card_stroke_color_default))
+            } else {
+                r.fill(rc(k.subtle_fill_color_transparent))
+                    .hover_fill(rc(k.layer_on_mica_base_alt_fill_color_secondary))
+                    .press_fill(rc(k.subtle_fill_color_tertiary))
+            };
+            let r = focus_rect(r, t, R).role("tab").checked(sel).label(tab.header.clone()).key(format!("tab:{i}"));
+            strip = strip.child(self.select.attach(r, i));
+            let next_sel = i + 1 == self.selected;
+            if !sel && !next_sel && i + 1 < self.tabs.len() {
+                strip = strip.child(rune::el().size(1.0, 16.0).mb(8.0).fill(rc(k.divider_stroke_color_default)));
+            }
+        }
+        if self.add {
+            strip = strip.child(row().h(32.0).pl(4.0).center_y().child(self.add_tab.attach(Self::small_button(t, Symbol::Add, 32.0, 24.0, "tab:add".into(), "Add tab"), ())));
+        }
+        let body = col()
+            .w_full()
+            .grow(1.0)
+            .padding(16.0)
+            .fill(rc(surface))
+            .border_sides([0.0, 1.0, 0.0, 0.0], rc(k.card_stroke_color_default))
+            .child((self.content)(t, self.selected));
+        col().w_full().child(strip).child(body)
     }
 }
 
-/// BreadcrumbBar-lite: `Home / Documents / Report` — last item is the current
-/// page (primary text), the rest are secondary links with chevron separators.
-#[derive(Clone, Debug)]
+/// `BreadcrumbBar`-lite — Gallery "BreadcrumbBar": items separated by chevrons; the last
+/// (current) item is primary text, earlier ones are secondary and pressable.
+#[derive(Clone, Default)]
 pub struct BreadcrumbBar {
-    pub trail: Vec<String>,
+    items: Vec<String>,
+    select: Hook<usize>,
 }
 
 impl BreadcrumbBar {
-    pub fn new(trail: Vec<String>) -> Self {
-        Self { trail }
+    pub fn new<I: Into<String>>(items: impl IntoIterator<Item = I>) -> Self {
+        BreadcrumbBar { items: items.into_iter().map(Into::into).collect(), select: Hook::default() }
     }
-    pub fn view(&self, theme: &Theme) -> El {
-        let t = theme.tokens();
-        let mut e = row().items_center().h(32.0);
-        let n = self.trail.len();
-        for (i, crumb) in self.trail.iter().enumerate() {
-            let last = i == n - 1;
-            let mut link = el().radius(4.0)
+    pub fn on_select<S: 'static>(mut self, f: impl Fn(&mut S, usize) + 'static) -> Self {
+        self.select.press(f);
+        self
+    }
+    pub fn view(&self, t: &Theme) -> El {
+        let k = t.tokens();
+        let mut bar = row().gap(4.0).center_y().role("navigation").label("Breadcrumb");
+        let last = self.items.len().saturating_sub(1);
+        for (i, item) in self.items.iter().enumerate() {
+            let current = i == last;
+            let fg = if current { k.text_fill_color_primary } else { k.text_fill_color_secondary };
+            let mut e = row()
+                .h(sizes::CONTROL_HEIGHT)
                 .px(4.0)
-                .h(24.0)
                 .center_y()
-                .role("link")
-                .label(crumb.clone())
-                .child(
-                    text(crumb.clone())
-                        .font(body())
-                        .color(rc(if last { t.text_fill_color_primary } else { t.text_fill_color_secondary }))
-                        .nowrap(),
-                );
-            if !last {
-                link = link.hover_fill(rc(t.subtle_fill_color_secondary)).cursor(rune::Cursor::Pointer);
+                .radius(R)
+                .child(rune::text(item.clone()).font(style::body(t)).color(rc(fg)).group_color(rc(k.text_fill_color_primary)))
+                .key(format!("breadcrumb:{i}"))
+                .label(item.clone());
+            if !current {
+                e = self.select.attach(focus_rect(e.hover_group().press_color(rc(k.text_fill_color_tertiary)).role("link"), t, R), i);
             }
-            e = e.child(link);
-            if !last {
-                e = e.child(
-                    el().w(20.0).h_full().center().child(
-                        glyph(Symbol::ChevronRight, 8.0, rc(t.text_fill_color_tertiary)),
-                    ),
-                );
+            bar = bar.child(e);
+            if !current {
+                bar = bar.child(glyph(Symbol::ChevronRight, 12.0, k.text_fill_color_secondary));
             }
         }
-        e
+        bar
     }
 }
+
+impl_control!(NavigationView, TabView, BreadcrumbBar);

@@ -1,267 +1,391 @@
-//! Text controls: TextBox, PasswordBox, NumberBox, AutoSuggestBox-lite.
-//! Matches "Text" Gallery samples.
+//! Text input: `TextBox`, `PasswordBox`, `NumberBox`, `AutoSuggestBox`-lite (WinUI Gallery ›
+//! Text). Editing is Rune's `TextEdit`; the app owns it and hands it back through `on_edit`.
+use std::rc::Rc;
 
-use rune::{El, TextEdit, col, el, row, text, text_input};
-use winui_icons::Symbol;
-use winui_materials::rc;
-use winui_theme::{Theme, sizes};
+use rune::{col, row, El, TextEdit};
 
-use crate::{body, glyph};
+use crate::impl_control;
+use crate::selection::header;
+use crate::shim::icons::Symbol;
+use crate::shim::theme::{sizes, Theme};
+use crate::style::{self, flyout_surface, glyph, rc, Hook, R};
 
-/// The WinUI text-control chrome: CardRadius box, `ControlFillColorInputActive`
-/// fill, hairline border, and the stronger bottom stroke that turns accent
-/// while focused. `focused` paints that 2px accent underline for snapshots.
-fn text_chrome(theme: &Theme, enabled: bool, focused: bool, inner: El) -> El {
-    let t = theme.tokens();
-    let fill = if enabled {
-        rc(t.control_fill_color_input_active)
-    } else {
-        rc(t.control_fill_color_disabled)
-    };
-    let mut e = el()
-        .min_h(sizes::CONTROL_HEIGHT)
-        .min_w(sizes::TEXT_CONTROL_MIN_WIDTH)
-        .radius(4.0)
-        .fill(fill)
-        .border(1.0, rc(t.control_stroke_color_secondary))
-        .clip_rounded(4.0)
-        .child(inner);
-    if focused && enabled {
-        e = e.child(
-            el().absolute(0.0, sizes::CONTROL_HEIGHT - 2.0)
-                .w_full()
-                .h(2.0)
-                .fill(rc(t.accent_fill_color_default)),
-        );
-    } else {
-        e = e.child(
-            el().absolute(0.0, sizes::CONTROL_HEIGHT - 1.0)
-                .w_full()
-                .h(1.0)
-                .fill(rc(t.control_strong_stroke_color_default)),
-        );
-    }
-    e
+fn edit_fn<S, F: for<'a> Fn(&'a mut S) -> &'a mut TextEdit>(f: F) -> F {
+    f
 }
 
-/// A single-line TextBox.
-#[derive(Clone, Debug)]
+/// `TextBox` — Gallery "TextBox": 32px field, 10/6px side padding, elevation border whose
+/// bottom edge is `ControlStrongStrokeColorDefault`, and a 2px accent underline while focused.
+#[derive(Clone)]
 pub struct TextBox {
-    pub placeholder: String,
-    pub enabled: bool,
-    pub focused: bool,
-    pub header: Option<String>,
+    edit: TextEdit,
+    header: Option<String>,
+    placeholder: String,
+    enabled: bool,
+    focused: bool,
+    width: f32,
+    secure: bool,
+    revealed: bool,
+    key: String,
+    trailing: Vec<El>,
+    edits: Hook<()>,
+    focus: Hook<()>,
+    submit: Hook<()>,
 }
 
 impl TextBox {
-    pub fn new(placeholder: impl Into<String>) -> Self {
-        Self {
-            placeholder: placeholder.into(),
+    pub fn new(edit: &TextEdit) -> Self {
+        TextBox {
+            edit: edit.clone(),
+            header: None,
+            placeholder: String::new(),
             enabled: true,
             focused: false,
-            header: None,
+            width: 296.0,
+            secure: false,
+            revealed: false,
+            key: "textbox".into(),
+            trailing: Vec::new(),
+            edits: Hook::default(),
+            focus: Hook::default(),
+            submit: Hook::default(),
         }
-    }
-    pub fn enabled(mut self, on: bool) -> Self {
-        self.enabled = on;
-        self
-    }
-    pub fn focused(mut self, on: bool) -> Self {
-        self.focused = on;
-        self
     }
     pub fn header(mut self, h: impl Into<String>) -> Self {
         self.header = Some(h.into());
         self
     }
-
-    /// `edit` lives in your state — `TextEdit::new("")` for an empty box.
-    pub fn view(&self, theme: &Theme, edit: &TextEdit) -> El {
-        let t = theme.tokens();
-        let text_c = rc(if self.enabled {
-            t.text_fill_color_primary
-        } else {
-            t.text_fill_color_disabled
+    pub fn placeholder(mut self, p: impl Into<String>) -> Self {
+        self.placeholder = p.into();
+        self
+    }
+    pub fn enabled(mut self, on: bool) -> Self {
+        self.enabled = on;
+        self
+    }
+    /// Whether the field has focus (app-owned; wire `on_focus`). Draws `Focused` visuals.
+    pub fn focused(mut self, on: bool) -> Self {
+        self.focused = on;
+        self
+    }
+    pub fn width(mut self, w: f32) -> Self {
+        self.width = w;
+        self
+    }
+    pub fn key(mut self, k: impl Into<String>) -> Self {
+        self.key = k.into();
+        self
+    }
+    /// An element inside the field after the text (a button, a glyph).
+    pub fn trailing(mut self, e: El) -> Self {
+        self.trailing.push(e);
+        self
+    }
+    pub(crate) fn secure(mut self, revealed: bool) -> Self {
+        self.secure = true;
+        self.revealed = revealed;
+        self
+    }
+    /// Where Rune finds the app's `TextEdit` to apply keystrokes to.
+    pub fn on_edit<S: 'static>(mut self, f: impl for<'a> Fn(&'a mut S) -> &'a mut TextEdit + 'static) -> Self {
+        let f = Rc::new(f);
+        self.edits.raw(move |e, ()| {
+            let f = f.clone();
+            e.on_edit(edit_fn(move |s: &mut S| f(s)))
         });
-        let inner = el().w_full()
-            .min_h(sizes::CONTROL_HEIGHT)
+        self
+    }
+    pub fn on_focus<S: 'static>(mut self, f: impl Fn(&mut S, bool) + 'static) -> Self {
+        let f = Rc::new(f);
+        self.focus.raw(move |e, ()| {
+            let f = f.clone();
+            e.on_focus_within_change(move |s: &mut S, on, _tx: &mut rune::Tx| f(s, on))
+        });
+        self
+    }
+    pub fn on_submit<S: 'static>(mut self, f: impl Fn(&mut S) + 'static) -> Self {
+        let f = Rc::new(f);
+        self.submit.raw(move |e, ()| {
+            let f = f.clone();
+            e.on_submit(move |s: &mut S, _tx: &mut rune::Tx| f(s))
+        });
+        self
+    }
+    pub fn view(&self, t: &Theme) -> El {
+        let k = t.tokens();
+        let en = self.enabled;
+        let fg = if en { k.text_fill_color_primary } else { k.text_fill_color_disabled };
+        let mut input = rune::text_input(&self.edit, style::body(t))
+            .single_line()
+            .grow(1.0)
+            .shrink()
+            .color(rc(fg))
+            .placeholder(self.placeholder.clone(), rc(if en { k.text_fill_color_secondary } else { k.text_fill_color_disabled }))
+            .caret(rc(k.text_fill_color_primary), rc(k.accent_fill_color_default.with_alpha(0.45)))
+            .label(self.header.clone().unwrap_or_else(|| self.placeholder.clone()))
+            .key(format!("{}:input", self.key))
+            .disabled(!en);
+        if self.secure {
+            input = input.secure().revealed(self.revealed);
+        }
+        if en {
+            input = self.submit.attach(self.edits.attach(input, ()), ());
+        }
+        let mut field = row()
+            .w(self.width)
+            .h(sizes::CONTROL_HEIGHT)
+            .pl(10.0)
+            .pr(if self.trailing.is_empty() { 6.0 } else { 2.0 })
+            .gap(4.0)
             .center_y()
-            .pl(sizes::TEXT_CONTROL_PADDING.left)
-            .pr(sizes::TEXT_CONTROL_PADDING.right)
-            .child(
-                text_input(edit, body())
-                    .w_full()
-                    .color(text_c)
-                    .placeholder(self.placeholder.clone(), rc(t.text_fill_color_tertiary))
-                    .label(self.header.clone().unwrap_or_else(|| self.placeholder.clone())),
-            );
-        let boxed = text_chrome(theme, self.enabled, self.focused, inner);
+            .radius(R)
+            .clip_rounded(R)
+            .key(self.key.clone())
+            .child(input)
+            .children(self.trailing.iter().cloned());
+        field = match (en, self.focused) {
+            (false, _) => field.fill(rc(k.control_fill_color_disabled)).border(1.0, rc(k.control_stroke_color_default)),
+            (true, true) => field
+                .fill(rc(k.control_fill_color_input_active))
+                .border(1.0, rc(k.control_stroke_color_default))
+                .child(rune::el().absolute(0.0, sizes::CONTROL_HEIGHT - 2.0).size(self.width, 2.0).fill(rc(k.accent_fill_color_default))),
+            (true, false) => field
+                .fill(rc(k.control_fill_color_default))
+                .hover_fill(rc(k.control_fill_color_secondary))
+                .border_gradient(1.0, rc(k.control_stroke_color_default), rc(k.control_strong_stroke_color_default)),
+        };
+        if en {
+            field = self.focus.attach(field, ());
+        }
         match &self.header {
-            Some(h) => col().gap(4.0)
-                .child(text(h.clone()).font(body()).color(rc(t.text_fill_color_primary)))
-                .child(boxed),
-            None => boxed,
+            Some(h) => col().child(header(h, t, en)).child(field),
+            None => field,
         }
     }
 }
 
-/// PasswordBox: bullets + a reveal (eye) button on the right.
-#[derive(Clone, Debug)]
+/// A subtle 30×24 button inside a field (reveal, clear, spin, search).
+fn field_button(t: &Theme, s: Symbol, key: String, label: &str) -> El {
+    let k = t.tokens();
+    rune::el()
+        .size(30.0, 24.0)
+        .center()
+        .radius(R)
+        .fill(rc(k.subtle_fill_color_transparent))
+        .hover_fill(rc(k.subtle_fill_color_secondary))
+        .press_fill(rc(k.subtle_fill_color_tertiary))
+        .press_color(rc(k.text_fill_color_tertiary))
+        .child(glyph(s, 12.0, k.text_fill_color_secondary))
+        .role("button")
+        .label(label.to_owned())
+        .key(key)
+}
+
+/// `PasswordBox` — Gallery "PasswordBox": a secure `TextBox` with a reveal (eye) button.
+#[derive(Clone)]
 pub struct PasswordBox {
-    pub placeholder: String,
-    pub enabled: bool,
-    pub revealed: bool,
+    field: TextBox,
+    revealed: bool,
+    reveal: Hook<bool>,
 }
 
 impl PasswordBox {
-    pub fn new(placeholder: impl Into<String>) -> Self {
-        Self { placeholder: placeholder.into(), enabled: true, revealed: false }
+    pub fn new(edit: &TextEdit) -> Self {
+        PasswordBox { field: TextBox::new(edit).key("password"), revealed: false, reveal: Hook::default() }
+    }
+    pub fn header(mut self, h: impl Into<String>) -> Self {
+        self.field = self.field.header(h);
+        self
+    }
+    pub fn placeholder(mut self, p: impl Into<String>) -> Self {
+        self.field = self.field.placeholder(p);
+        self
+    }
+    pub fn enabled(mut self, on: bool) -> Self {
+        self.field = self.field.enabled(on);
+        self
+    }
+    pub fn focused(mut self, on: bool) -> Self {
+        self.field = self.field.focused(on);
+        self
     }
     pub fn revealed(mut self, on: bool) -> Self {
         self.revealed = on;
         self
     }
-    pub fn view(&self, theme: &Theme, edit: &TextEdit) -> El {
-        let t = theme.tokens();
-        let inner = row().items_center().w_full().min_h(sizes::CONTROL_HEIGHT)
-            .pl(sizes::TEXT_CONTROL_PADDING.left)
-            .child(
-                text_input(edit, body())
-                    .secure()
-                    .grow(1.0)
-                    .min_w(0.0)
-                    .color(rc(t.text_fill_color_primary))
-                    .placeholder(self.placeholder.clone(), rc(t.text_fill_color_tertiary))
-                    .label("Password"),
-            )
-            .child(
-                el().size(28.0, 24.0)
-                    .mr(4.0)
-                    .radius(4.0)
-                    .center()
-                    .role("button")
-                    .label("Reveal password")
-                    .hover_fill(rc(t.subtle_fill_color_secondary))
-                    .child(glyph(if self.revealed { Symbol::EyeOff } else { Symbol::Eye }, 12.0, rc(t.text_fill_color_secondary))),
-            );
-        text_chrome(theme, self.enabled, false, inner)
+    pub fn key(mut self, k: impl Into<String>) -> Self {
+        self.field = self.field.key(k);
+        self
+    }
+    pub fn on_edit<S: 'static>(mut self, f: impl for<'a> Fn(&'a mut S) -> &'a mut TextEdit + 'static) -> Self {
+        self.field = self.field.on_edit(f);
+        self
+    }
+    pub fn on_focus<S: 'static>(mut self, f: impl Fn(&mut S, bool) + 'static) -> Self {
+        self.field = self.field.on_focus(f);
+        self
+    }
+    /// `f(state, revealed)` from the eye button.
+    pub fn on_reveal<S: 'static>(mut self, f: impl Fn(&mut S, bool) + 'static) -> Self {
+        self.reveal.press(f);
+        self
+    }
+    pub fn view(&self, t: &Theme) -> El {
+        let mut f = self.field.clone().secure(self.revealed);
+        if f.enabled && !f.edit.text.is_empty() {
+            let b = field_button(t, Symbol::Eye, format!("{}:reveal", f.key), "Reveal password");
+            f = f.trailing(self.reveal.attach(b, !self.revealed));
+        }
+        f.view(t)
     }
 }
 
-/// NumberBox: a TextBox with up/down spin buttons docked on the right.
-#[derive(Clone, Debug)]
+/// `NumberBox` — Gallery "NumberBox" with `SpinButtonPlacementMode="Inline"`.
+#[derive(Clone)]
 pub struct NumberBox {
-    pub enabled: bool,
-    pub placeholder: String,
+    field: TextBox,
+    value: f64,
+    min: f64,
+    max: f64,
+    step: f64,
+    spin: Hook<f64>,
 }
 
 impl NumberBox {
-    pub fn new() -> Self {
-        Self { enabled: true, placeholder: String::new() }
+    pub fn new(value: f64, edit: &TextEdit) -> Self {
+        NumberBox { field: TextBox::new(edit).key("numberbox").width(200.0), value, min: f64::MIN, max: f64::MAX, step: 1.0, spin: Hook::default() }
     }
-    pub fn view(&self, theme: &Theme, edit: &TextEdit) -> El {
-        let t = theme.tokens();
-        let spin = |sym: Symbol, top: bool| {
-            el().size(24.0, 15.0)
-                .center()
-                .role("button")
-                .hover_fill(rc(t.subtle_fill_color_secondary))
-                .corners(if top { [0.0, 3.0, 0.0, 0.0] } else { [0.0, 0.0, 3.0, 0.0] })
-                .child(glyph(sym, 8.0, rc(t.text_fill_color_secondary)))
-        };
-        let inner = row().items_center().w_full().min_h(sizes::CONTROL_HEIGHT)
-            .pl(sizes::TEXT_CONTROL_PADDING.left)
-            .child(
-                text_input(edit, body())
-                    .grow(1.0)
-                    .min_w(0.0)
-                    .color(rc(t.text_fill_color_primary))
-                    .placeholder(self.placeholder.clone(), rc(t.text_fill_color_tertiary))
-                    .label("Number"),
-            )
-            .child(
-                col().mr(4.0).child(spin(Symbol::ChevronUp, true)).child(spin(Symbol::ChevronDown, false)),
-            );
-        text_chrome(theme, self.enabled, false, inner)
+    pub fn header(mut self, h: impl Into<String>) -> Self {
+        self.field = self.field.header(h);
+        self
+    }
+    pub fn range(mut self, min: f64, max: f64) -> Self {
+        self.min = min;
+        self.max = max;
+        self
+    }
+    pub fn step(mut self, s: f64) -> Self {
+        self.step = s;
+        self
+    }
+    pub fn enabled(mut self, on: bool) -> Self {
+        self.field = self.field.enabled(on);
+        self
+    }
+    pub fn focused(mut self, on: bool) -> Self {
+        self.field = self.field.focused(on);
+        self
+    }
+    pub fn key(mut self, k: impl Into<String>) -> Self {
+        self.field = self.field.key(k);
+        self
+    }
+    pub fn on_edit<S: 'static>(mut self, f: impl for<'a> Fn(&'a mut S) -> &'a mut TextEdit + 'static) -> Self {
+        self.field = self.field.on_edit(f);
+        self
+    }
+    /// `f(state, new_value)` from the spin buttons, clamped to the range.
+    pub fn on_spin<S: 'static>(mut self, f: impl Fn(&mut S, f64) + 'static) -> Self {
+        self.spin.press(f);
+        self
+    }
+    /// Parses a `NumberBox` edit's text (`None` for non-numbers), clamped to `[min, max]`.
+    pub fn parse(text: &str, min: f64, max: f64) -> Option<f64> {
+        text.trim().parse::<f64>().ok().filter(|v| v.is_finite()).map(|v| v.clamp(min, max))
+    }
+    pub fn view(&self, t: &Theme) -> El {
+        let mut f = self.field.clone();
+        if f.enabled {
+            let up = field_button(t, Symbol::ChevronUp, format!("{}:up", f.key), "Increase");
+            let down = field_button(t, Symbol::ChevronDown, format!("{}:down", f.key), "Decrease");
+            f = f
+                .trailing(self.spin.attach(up, (self.value + self.step).min(self.max)))
+                .trailing(self.spin.attach(down, (self.value - self.step).max(self.min)));
+        }
+        f.view(t).range_value(self.value, self.min, self.max)
     }
 }
 
-impl Default for NumberBox {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-/// AutoSuggestBox-lite: a TextBox with a leading icon and, when `open`, the
-/// suggestion flyout beneath it (two rows shown, first highlighted — the
-/// static look of the Gallery's open dropdown).
-#[derive(Clone, Debug)]
+/// `AutoSuggestBox`-lite — Gallery "AutoSuggestBox": a `TextBox` with a search glyph and a
+/// suggestion list below while `open`.
+#[derive(Clone)]
 pub struct AutoSuggestBox {
-    pub placeholder: String,
-    pub enabled: bool,
-    /// Suggestion rows; non-empty renders the open popup.
-    pub suggestions: Vec<String>,
-    pub selected: usize,
+    field: TextBox,
+    suggestions: Vec<String>,
+    open: bool,
+    choose: Hook<usize>,
 }
 
 impl AutoSuggestBox {
-    pub fn new(placeholder: impl Into<String>) -> Self {
-        Self {
-            placeholder: placeholder.into(),
-            enabled: true,
-            suggestions: Vec::new(),
-            selected: 0,
-        }
+    pub fn new(edit: &TextEdit) -> Self {
+        AutoSuggestBox { field: TextBox::new(edit).key("autosuggest"), suggestions: Vec::new(), open: false, choose: Hook::default() }
     }
-    pub fn suggestions(mut self, s: impl IntoIterator<Item = impl Into<String>>) -> Self {
-        self.suggestions = s.into_iter().map(Into::into).collect();
+    pub fn placeholder(mut self, p: impl Into<String>) -> Self {
+        self.field = self.field.placeholder(p);
         self
     }
-    pub fn view(&self, theme: &Theme, edit: &TextEdit) -> El {
-        let t = theme.tokens();
-        let inner = row().items_center().w_full().min_h(sizes::CONTROL_HEIGHT)
-            .pl(sizes::TEXT_CONTROL_PADDING.left)
-            .child(
-                text_input(edit, body())
-                    .grow(1.0)
-                    .min_w(0.0)
-                    .color(rc(t.text_fill_color_primary))
-                    .placeholder(self.placeholder.clone(), rc(t.text_fill_color_tertiary))
-                    .label("Search"),
-            )
-            .child(
-                el().size(28.0, 24.0)
-                    .mr(4.0)
-                    .center()
-                    .child(glyph(Symbol::Find, 12.0, rc(t.text_fill_color_secondary))),
-            );
-        let boxed = text_chrome(theme, self.enabled, false, inner);
-        if self.suggestions.is_empty() {
-            return boxed;
+    pub fn header(mut self, h: impl Into<String>) -> Self {
+        self.field = self.field.header(h);
+        self
+    }
+    pub fn focused(mut self, on: bool) -> Self {
+        self.field = self.field.focused(on);
+        self
+    }
+    pub fn width(mut self, w: f32) -> Self {
+        self.field = self.field.width(w);
+        self
+    }
+    pub fn suggestions<I: Into<String>>(mut self, items: impl IntoIterator<Item = I>) -> Self {
+        self.suggestions = items.into_iter().map(Into::into).collect();
+        self
+    }
+    pub fn open(mut self, on: bool) -> Self {
+        self.open = on;
+        self
+    }
+    pub fn key(mut self, k: impl Into<String>) -> Self {
+        self.field = self.field.key(k);
+        self
+    }
+    pub fn on_edit<S: 'static>(mut self, f: impl for<'a> Fn(&'a mut S) -> &'a mut TextEdit + 'static) -> Self {
+        self.field = self.field.on_edit(f);
+        self
+    }
+    pub fn on_focus<S: 'static>(mut self, f: impl Fn(&mut S, bool) + 'static) -> Self {
+        self.field = self.field.on_focus(f);
+        self
+    }
+    pub fn on_choose<S: 'static>(mut self, f: impl Fn(&mut S, usize) + 'static) -> Self {
+        self.choose.press(f);
+        self
+    }
+    /// Case-insensitive substring filter, the Gallery sample's behaviour.
+    pub fn filter<'a>(items: &'a [&'a str], query: &str) -> Vec<&'a str> {
+        let q = query.to_lowercase();
+        items.iter().copied().filter(|s| !q.is_empty() && s.to_lowercase().contains(&q)).collect()
+    }
+    pub fn view(&self, t: &Theme) -> El {
+        let k = t.tokens();
+        let f = self.field.clone();
+        let key = f.key.clone();
+        let width = f.width;
+        let search = rune::el().size(30.0, 24.0).center().child(glyph(Symbol::Find, 12.0, k.text_fill_color_secondary));
+        let field = f.trailing(search).view(t);
+        if !self.open || self.suggestions.is_empty() {
+            return field;
         }
-        let mut list = col().py(4.0);
+        let mut list = flyout_surface(t).w(width).py(2.0);
         for (i, s) in self.suggestions.iter().enumerate() {
-            let mut row_e = el().w_full()
-                .h(28.0)
-                .center_y()
-                .px(12.0)
-                .radius(4.0)
-                .mx(4.0)
-                .child(text(s.clone()).font(body()).color(rc(t.text_fill_color_primary)).nowrap());
-            if i == self.selected {
-                row_e = row_e.fill(rc(t.subtle_fill_color_secondary));
-            } else {
-                row_e = row_e.hover_fill(rc(t.subtle_fill_color_secondary));
-            }
-            list = list.child(row_e);
+            let item = crate::menus::list_row(t, true, false)
+                .child(rune::text(s.clone()).font(style::body(t)).color(rc(k.text_fill_color_primary)))
+                .key(format!("{key}:suggestion{i}"))
+                .role("option")
+                .label(s.clone());
+            list = list.child(self.choose.attach(item, i));
         }
-        let popup = el().w_full()
-            .mt(4.0)
-            .radius(8.0)
-            .fill(rc(t.layer_on_acrylic_fill_color_default))
-            .border(1.0, rc(t.surface_stroke_color_flyout))
-            .box_shadow(winui_materials::elevation(theme, 16.0))
-            .child(list);
-        col().w_full().child(boxed).child(popup)
+        col().child(list.anchored(key, rune::Side::Bottom, rune::Align::Start, 2.0).raise()).child(field)
     }
 }
+
+impl_control!(TextBox, PasswordBox, NumberBox, AutoSuggestBox);

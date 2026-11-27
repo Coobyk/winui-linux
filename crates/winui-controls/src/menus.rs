@@ -1,276 +1,365 @@
-//! Menus and flyouts: ComboBox, Flyout, MenuFlyout, CommandBar-lite.
-//! Matches "Menus & toolbars" Gallery samples.
+//! Menus and flyouts: `MenuFlyout`, `Flyout`, `ComboBox`, `CommandBar`-lite (WinUI Gallery ›
+//! Menus & toolbars, Dialogs & flyouts › Flyout, Basic input › ComboBox).
+use std::rc::Rc;
 
-use rune::{El, col, el, row, text};
-use winui_icons::Symbol;
-use winui_materials::rc;
-use winui_theme::{Theme, radii, sizes};
+use rune::{col, row, El};
 
-use crate::{body, caption, glyph};
+use crate::impl_control;
+use crate::selection::{checkmark, header};
+use crate::shim::icons::Symbol;
+use crate::shim::theme::{sizes, Theme};
+use crate::style::{self, flyout_surface, focus_rect, glyph, rc, Hook, R};
 
-/// A closed ComboBox: text-control chrome, the current value, chevron right.
-/// For the open look, wrap it with [`ComboBox::popup`].
-#[derive(Clone, Debug)]
-pub struct ComboBox {
-    pub value: String,
-    pub enabled: bool,
-    /// Rendered selected index inside [`popup`](Self::popup)'s list.
-    pub selected: usize,
+/// A subtle 32px list row inset 4px inside its popup (menu items, ComboBox items,
+/// suggestions): `SubtleFillColorSecondary` on hover, `Tertiary` pressed, a fill when selected.
+pub fn list_row(t: &Theme, enabled: bool, selected: bool) -> El {
+    let k = t.tokens();
+    let mut r = row().min_h(sizes::CONTROL_HEIGHT).mx(4.0).my(2.0).px(12.0).gap(12.0).center_y().radius(R);
+    r = r.fill(rc(if selected { k.subtle_fill_color_secondary } else { k.subtle_fill_color_transparent }));
+    if enabled {
+        r = r
+            .hover_fill(rc(if selected { k.subtle_fill_color_tertiary } else { k.subtle_fill_color_secondary }))
+            .press_fill(rc(k.subtle_fill_color_tertiary))
+            .press_color(rc(k.text_fill_color_secondary));
+        r = focus_rect(r, t, R);
+    }
+    r.disabled(!enabled)
 }
 
-impl ComboBox {
-    pub fn new(value: impl Into<String>) -> Self {
-        Self { value: value.into(), enabled: true, selected: 0 }
-    }
-    pub fn view(&self, theme: &Theme) -> El {
-        let t = theme.tokens();
-        el().role("combobox")
-            .label(self.value.clone())
-            .min_h(sizes::CONTROL_HEIGHT)
-            .min_w(sizes::COMBO_BOX_MIN_WIDTH)
-            .radius(4.0)
-            .fill(rc(if self.enabled {
-                t.control_fill_color_input_active
-            } else {
-                t.control_fill_color_disabled
-            }))
-            .border(1.0, rc(t.control_stroke_color_secondary))
-            .clip_rounded(4.0)
-            .child(
-                row().items_center().w_full()
-                    .pl(sizes::COMBO_BOX_PADDING.left)
-                    .child(
-                        text(self.value.clone())
-                            .font(body())
-                            .color(rc(if self.enabled {
-                                t.text_fill_color_primary
-                            } else {
-                                t.text_fill_color_disabled
-                            }))
-                            .grow(1.0)
-                            .nowrap(),
-                    )
-                    .child(
-                        el().w(30.0).h_full().center().child(
-                            glyph(Symbol::ChevronDown, 12.0, rc(t.text_fill_color_secondary)),
-                        ),
-                    ),
-            )
-            .child(
-                el().absolute(0.0, sizes::CONTROL_HEIGHT - 1.0)
-                    .w_full()
-                    .h(1.0)
-                    .fill(rc(t.control_strong_stroke_color_default)),
-            )
-    }
-
-    /// The open dropdown list: `items` with the selected row pill-highlighted.
-    /// Position it under the closed box in your layout.
-    pub fn popup(&self, theme: &Theme, items: &[String], width: f32) -> El {
-        let t = theme.tokens();
-        let mut list = col().py(4.0);
-        for (i, item) in items.iter().enumerate() {
-            let mut e = el().w_full()
-                .h(28.0)
-                .center_y()
-                .px(sizes::COMBO_BOX_ITEM_PADDING.left)
-                .radius(4.0)
-                .mx(4.0)
-                .child(text(item.clone()).font(body()).color(rc(t.text_fill_color_primary)).nowrap());
-            if i == self.selected {
-                e = e.fill(rc(t.subtle_fill_color_secondary))
-                    .child(
-                        el().absolute(0.0, 6.0)
-                            .size(sizes::COMBO_BOX_ITEM_PILL_WIDTH, sizes::COMBO_BOX_ITEM_PILL_HEIGHT)
-                            .radius(2.0)
-                            .fill(rc(t.accent_fill_color_default)),
-                    );
-            } else {
-                e = e.hover_fill(rc(t.subtle_fill_color_secondary));
-            }
-            list = list.child(e);
-        }
-        el().w(width)
-            .radius(radii::OVERLAY)
-            .fill(rc(t.layer_on_acrylic_fill_color_default))
-            .border(1.0, rc(t.surface_stroke_color_flyout))
-            .box_shadow(winui_materials::elevation(theme, 16.0))
-            .child(list)
-    }
+/// The 3×16 accent pill that marks a selected list item / nav item.
+pub fn selection_pill(t: &Theme, x: f32, y: f32) -> El {
+    rune::el().absolute(x, y).size(3.0, 16.0).radius(1.5).fill(rc(t.tokens().accent_fill_color_default))
 }
 
-/// One menu row: optional icon, label, optional shortcut hint, optional
-/// submenu chevron.
 #[derive(Clone, Debug)]
-pub struct MenuItem {
-    pub label: String,
-    pub symbol: Option<Symbol>,
-    pub shortcut: Option<String>,
-    pub submenu: bool,
-    pub enabled: bool,
-    pub selected: bool,
+pub enum MenuItem {
+    Item { text: String, icon: Option<Symbol>, accelerator: Option<String>, enabled: bool },
+    Toggle { text: String, checked: bool },
+    Separator,
 }
 
 impl MenuItem {
-    pub fn new(label: impl Into<String>) -> Self {
-        Self {
-            label: label.into(),
-            symbol: None,
-            shortcut: None,
-            submenu: false,
-            enabled: true,
-            selected: false,
+    pub fn item(text: impl Into<String>) -> Self {
+        MenuItem::Item { text: text.into(), icon: None, accelerator: None, enabled: true }
+    }
+    pub fn icon(self, s: Symbol) -> Self {
+        match self {
+            MenuItem::Item { text, accelerator, enabled, .. } => MenuItem::Item { text, icon: Some(s), accelerator, enabled },
+            m => m,
         }
     }
-    pub fn symbol(mut self, s: Symbol) -> Self {
-        self.symbol = Some(s);
-        self
-    }
-    pub fn shortcut(mut self, s: impl Into<String>) -> Self {
-        self.shortcut = Some(s.into());
-        self
-    }
-    pub fn submenu(mut self, on: bool) -> Self {
-        self.submenu = on;
-        self
-    }
-    pub fn view(&self, theme: &Theme) -> El {
-        let t = theme.tokens();
-        let text_c = rc(if self.enabled {
-            t.text_fill_color_primary
-        } else {
-            t.text_fill_color_disabled
-        });
-        let mut e = row().items_center()
-            .h(28.0)
-            .px(12.0)
-            .gap(8.0)
-            .children(self.symbol.map(|s| glyph(s, 16.0, text_c)))
-            .child(text(self.label.clone()).font(body()).color(text_c).grow(1.0).nowrap());
-        if let Some(sc) = &self.shortcut {
-            e = e.child(text(sc.clone()).font(caption()).color(rc(t.text_fill_color_tertiary)).nowrap());
+    pub fn accelerator(self, a: impl Into<String>) -> Self {
+        match self {
+            MenuItem::Item { text, icon, enabled, .. } => MenuItem::Item { text, icon, accelerator: Some(a.into()), enabled },
+            m => m,
         }
-        if self.submenu {
-            e = e.child(glyph(Symbol::ChevronRight, 12.0, rc(t.text_fill_color_tertiary)));
+    }
+    pub fn enabled(self, on: bool) -> Self {
+        match self {
+            MenuItem::Item { text, icon, accelerator, .. } => MenuItem::Item { text, icon, accelerator, enabled: on },
+            m => m,
         }
-        let mut e = el().w_full().mx(4.0).radius(4.0).child(e);
-        if self.selected {
-            e = e.fill(rc(t.subtle_fill_color_secondary));
-        } else if self.enabled {
-            e = e.hover_fill(rc(t.subtle_fill_color_secondary));
-        }
-        e.role("menuitem").label(self.label.clone())
+    }
+    pub fn toggle(text: impl Into<String>, checked: bool) -> Self {
+        MenuItem::Toggle { text: text.into(), checked }
     }
 }
 
-/// A MenuFlyout: the elevated acrylic menu, `MenuItem` rows plus separators
-/// (`MenuItem::new("---")` renders a divider).
-#[derive(Clone, Debug, Default)]
+/// `MenuFlyout` — Gallery "MenuFlyout": an 8px-radius flyout of 32px items with optional icons,
+/// toggle checks and right-aligned accelerators.
+#[derive(Clone, Default)]
 pub struct MenuFlyout {
-    pub items: Vec<MenuItem>,
+    items: Vec<MenuItem>,
+    min_width: f32,
+    key: Option<String>,
+    select: Hook<usize>,
 }
 
 impl MenuFlyout {
-    pub fn new(items: Vec<MenuItem>) -> Self {
-        Self { items }
+    pub fn new(items: impl IntoIterator<Item = MenuItem>) -> Self {
+        MenuFlyout { items: items.into_iter().collect(), min_width: 120.0, ..Default::default() }
     }
-    pub fn view(&self, theme: &Theme, width: f32) -> El {
-        let t = theme.tokens();
-        let mut list = col().py(4.0);
-        for item in &self.items {
-            if item.label == "---" {
-                list = list.child(
-                    el().w_full().h(1.0).my(4.0).mx(12.0).fill(rc(t.divider_stroke_color_default)),
-                );
-            } else {
-                list = list.child(item.view(theme));
-            }
+    pub fn min_width(mut self, w: f32) -> Self {
+        self.min_width = w;
+        self
+    }
+    pub fn key(mut self, k: impl Into<String>) -> Self {
+        self.key = Some(k.into());
+        self
+    }
+    /// `f(state, item_index)`.
+    pub fn on_select<S: 'static>(mut self, f: impl Fn(&mut S, usize) + 'static) -> Self {
+        self.select.press(f);
+        self
+    }
+    pub fn view(&self, t: &Theme) -> El {
+        let k = t.tokens();
+        let has_icons = self.items.iter().any(|m| matches!(m, MenuItem::Item { icon: Some(_), .. } | MenuItem::Toggle { .. }));
+        let mut menu = flyout_surface(t).min_w(self.min_width).px(4.0).py(2.0).role("menu");
+        for (i, m) in self.items.iter().enumerate() {
+            let e = match m {
+                MenuItem::Separator => rune::el().h(1.0).w_full().my(2.0).fill(rc(k.divider_stroke_color_default)),
+                MenuItem::Item { text, icon, accelerator, enabled } => {
+                    let fg = if *enabled { k.text_fill_color_primary } else { k.text_fill_color_disabled };
+                    let mut r = list_row(t, *enabled, false).mx(0.0).role("menuitem").label(text.clone()).key(format!("menu:{text}"));
+                    if let Some(s) = icon {
+                        r = r.child(glyph(*s, 16.0, fg));
+                    } else if has_icons {
+                        r = r.child(rune::el().size(16.0, 16.0));
+                    }
+                    r = r.child(rune::text(text.clone()).font(style::body(t)).color(rc(fg))).child(rune::spacer());
+                    if let Some(a) = accelerator {
+                        // MenuFlyoutItemKeyboardAcceleratorTextMargin is 24px: the row gap plus 12px.
+                        r = r.child(rune::el().w(12.0)).child(rune::text(a.clone()).font(style::caption(t)).color(rc(k.text_fill_color_secondary)));
+                    }
+                    if *enabled { self.select.attach(r, i) } else { r }
+                }
+                MenuItem::Toggle { text, checked } => {
+                    let mark = if *checked { checkmark(k.text_fill_color_primary).size(16.0, 16.0) } else { rune::el().size(16.0, 16.0) };
+                    let r = list_row(t, true, false)
+                        .mx(0.0)
+                        .role("menuitemcheckbox")
+                        .checked(*checked)
+                        .label(text.clone())
+                        .key(format!("menu:{text}"))
+                        .child(mark)
+                        .child(rune::text(text.clone()).font(style::body(t)).color(rc(k.text_fill_color_primary)));
+                    self.select.attach(r, i)
+                }
+            };
+            menu = menu.child(e);
         }
-        el().w(width)
-            .radius(radii::OVERLAY)
-            .fill(rc(t.layer_on_acrylic_fill_color_default))
-            .border(1.0, rc(t.surface_stroke_color_flyout))
-            .box_shadow(winui_materials::elevation(theme, 16.0))
-            .child(list)
+        match &self.key {
+            Some(key) => menu.key(key.clone()),
+            None => menu,
+        }
     }
 }
 
-/// A plain Flyout surface — the elevated acrylic card any content can sit in.
-#[derive(Clone, Debug)]
+/// `Flyout` — Gallery "Flyout": arbitrary content on an 8px-radius flyout surface, 16px
+/// padding, anchored below an element keyed `anchor`.
+#[derive(Clone)]
 pub struct Flyout {
-    pub title: Option<String>,
-    pub body: String,
+    content: Rc<dyn Fn(&Theme) -> El>,
+    anchor: Option<String>,
 }
 
 impl Flyout {
-    pub fn new(body: impl Into<String>) -> Self {
-        Self { title: None, body: body.into() }
+    pub fn new(content: impl Fn(&Theme) -> El + 'static) -> Self {
+        Flyout { content: Rc::new(content), anchor: None }
     }
-    pub fn title(mut self, t: impl Into<String>) -> Self {
-        self.title = Some(t.into());
+    /// Position below the element keyed `key` (out of flow).
+    pub fn anchor(mut self, key: impl Into<String>) -> Self {
+        self.anchor = Some(key.into());
         self
     }
-    pub fn view(&self, theme: &Theme, width: f32) -> El {
-        let t = theme.tokens();
-        let pad = sizes::FLYOUT_CONTENT_PADDING;
-        let mut c = col().gap(8.0).pl(pad.left).pr(pad.right).pt(pad.top).pb(pad.bottom);
-        if let Some(title) = &self.title {
-            c = c.child(
-                text(title.clone())
-                    .font(rune::TextStyle::new(14.0, 600.0))
-                    .color(rc(t.text_fill_color_primary)),
-            );
+    pub fn view(&self, t: &Theme) -> El {
+        let f = flyout_surface(t).padding(16.0).gap(12.0).child((self.content)(t)).role("dialog");
+        match &self.anchor {
+            Some(k) => f.anchored(k.clone(), rune::Side::Bottom, rune::Align::Start, 4.0).raise(),
+            None => f,
         }
-        c = c.child(text(self.body.clone()).font(body()).color(rc(t.text_fill_color_secondary)));
-        el().w(width)
-            .radius(radii::OVERLAY)
-            .fill(rc(t.layer_on_acrylic_fill_color_default))
-            .border(1.0, rc(t.surface_stroke_color_flyout))
-            .box_shadow(winui_materials::elevation(theme, 32.0))
-            .child(c)
     }
 }
 
-/// CommandBar-lite: a row of icon buttons on a card surface, ending in a
-/// "more" (…) button.
+/// `ComboBox` — Gallery "ComboBox": a 32px standard-button face with the selection and a
+/// chevron; when `open`, a list flyout whose selected item carries the accent pill.
+#[derive(Clone)]
+pub struct ComboBox {
+    items: Vec<String>,
+    selected: Option<usize>,
+    placeholder: String,
+    header: Option<String>,
+    width: f32,
+    open: bool,
+    enabled: bool,
+    key: String,
+    select: Hook<usize>,
+    toggle: Hook<bool>,
+}
+
+impl ComboBox {
+    pub fn new<I: Into<String>>(items: impl IntoIterator<Item = I>) -> Self {
+        ComboBox {
+            items: items.into_iter().map(Into::into).collect(),
+            selected: None,
+            placeholder: String::new(),
+            header: None,
+            width: 200.0,
+            open: false,
+            enabled: true,
+            key: "combobox".into(),
+            select: Hook::default(),
+            toggle: Hook::default(),
+        }
+    }
+    pub fn selected(mut self, i: Option<usize>) -> Self {
+        self.selected = i;
+        self
+    }
+    pub fn placeholder(mut self, p: impl Into<String>) -> Self {
+        self.placeholder = p.into();
+        self
+    }
+    pub fn header(mut self, h: impl Into<String>) -> Self {
+        self.header = Some(h.into());
+        self
+    }
+    pub fn width(mut self, w: f32) -> Self {
+        self.width = w;
+        self
+    }
+    pub fn open(mut self, on: bool) -> Self {
+        self.open = on;
+        self
+    }
+    pub fn enabled(mut self, on: bool) -> Self {
+        self.enabled = on;
+        self
+    }
+    pub fn key(mut self, k: impl Into<String>) -> Self {
+        self.key = k.into();
+        self
+    }
+    pub fn on_select<S: 'static>(mut self, f: impl Fn(&mut S, usize) + 'static) -> Self {
+        self.select.press(f);
+        self
+    }
+    pub fn on_toggle<S: 'static>(mut self, f: impl Fn(&mut S, bool) + 'static) -> Self {
+        self.toggle.press(f);
+        self
+    }
+    pub fn view(&self, t: &Theme) -> El {
+        let k = t.tokens();
+        let en = self.enabled;
+        let recipe = style::Recipe::standard(k);
+        let (text, color) = match self.selected.and_then(|i| self.items.get(i)) {
+            Some(s) => (s.clone(), recipe.fg(en)),
+            None => (self.placeholder.clone(), if en { k.text_fill_color_secondary } else { k.text_fill_color_disabled }),
+        };
+        let mut face = row()
+            .w(self.width)
+            .h(sizes::CONTROL_HEIGHT)
+            .pl(12.0)
+            .pr(10.0)
+            .pb(1.0)
+            .center_y()
+            .radius(R)
+            .child(rune::text(text).font(style::body(t)).color(rc(color)).grow(1.0))
+            .child(glyph(Symbol::ChevronDown, 12.0, if en { k.text_fill_color_secondary } else { k.text_fill_color_disabled }))
+            .role("combobox")
+            .label(self.header.clone().unwrap_or_else(|| self.placeholder.clone()))
+            .expanded(self.open)
+            .key(self.key.clone());
+        face = recipe.paint(face, en);
+        if en {
+            face = self.toggle.attach(focus_rect(face, t, R), !self.open);
+        }
+        // The popup mounts before its anchor so it lifts above later siblings.
+        let mut out = col();
+        if self.open && en {
+            let mut list = flyout_surface(t).w(self.width).py(2.0).role("listbox");
+            for (i, item) in self.items.iter().enumerate() {
+                let sel = self.selected == Some(i);
+                let mut r = list_row(t, true, sel)
+                    .child(rune::text(item.clone()).font(style::body(t)).color(rc(k.text_fill_color_primary)))
+                    .role("option")
+                    .checked(sel)
+                    .label(item.clone())
+                    .key(format!("{}:item{i}", self.key));
+                if sel {
+                    r = r.child(selection_pill(t, 0.0, (sizes::CONTROL_HEIGHT - 16.0) / 2.0));
+                }
+                list = list.child(self.select.attach(r, i));
+            }
+            out = out.child(list.anchored(self.key.clone(), rune::Side::Bottom, rune::Align::Start, 4.0).raise());
+        }
+        if let Some(h) = &self.header {
+            out = out.child(header(h, t, en));
+        }
+        out.child(face)
+    }
+}
+
 #[derive(Clone, Debug)]
+pub enum AppBarItem {
+    Button { icon: Symbol, label: String, enabled: bool },
+    Toggle { icon: Symbol, label: String, checked: bool },
+    Separator,
+}
+
+impl AppBarItem {
+    pub fn button(icon: Symbol, label: impl Into<String>) -> Self {
+        AppBarItem::Button { icon, label: label.into(), enabled: true }
+    }
+    pub fn toggle(icon: Symbol, label: impl Into<String>, checked: bool) -> Self {
+        AppBarItem::Toggle { icon, label: label.into(), checked }
+    }
+}
+
+/// `CommandBar`-lite — Gallery "CommandBar" (`DefaultLabelPosition="Right"`): subtle 40px
+/// app-bar buttons, separators and a "More" overflow button.
+#[derive(Clone, Default)]
 pub struct CommandBar {
-    pub commands: Vec<(Symbol, String)>,
+    items: Vec<AppBarItem>,
+    overflow: bool,
+    press: Hook<usize>,
+    more: Hook<()>,
 }
 
 impl CommandBar {
-    pub fn new(commands: Vec<(Symbol, String)>) -> Self {
-        Self { commands }
+    pub fn new(items: impl IntoIterator<Item = AppBarItem>) -> Self {
+        CommandBar { items: items.into_iter().collect(), overflow: true, ..Default::default() }
     }
-    pub fn view(&self, theme: &Theme) -> El {
-        let t = theme.tokens();
-        let mut bar = row().items_center().gap(2.0).px(8.0).h(40.0);
-        for (sym, name) in &self.commands {
-            bar = bar.child(
-                el().size(32.0, 32.0)
-                    .center()
-                    .radius(4.0)
-                    .role("button")
-                    .label(name.clone())
-                    .hover_fill(rc(t.subtle_fill_color_secondary))
-                    .press_fill(rc(t.subtle_fill_color_tertiary))
-                    .cursor(rune::Cursor::Pointer)
-                    .child(glyph(*sym, 16.0, rc(t.text_fill_color_primary))),
-            );
+    pub fn overflow(mut self, on: bool) -> Self {
+        self.overflow = on;
+        self
+    }
+    /// `f(state, item_index)`.
+    pub fn on_press<S: 'static>(mut self, f: impl Fn(&mut S, usize) + 'static) -> Self {
+        self.press.press(f);
+        self
+    }
+    pub fn on_more<S: 'static>(mut self, f: impl Fn(&mut S) + 'static) -> Self {
+        self.more.press(move |s: &mut S, ()| f(s));
+        self
+    }
+    fn app_button(t: &Theme, icon: Symbol, label: Option<&str>, enabled: bool, checked: bool) -> El {
+        let k = t.tokens();
+        let recipe = if checked { style::Recipe::accent(k) } else { style::Recipe::subtle(k) };
+        let fg = recipe.fg(enabled);
+        let mut b = row().h(40.0).px(12.0).gap(8.0).center().radius(R).child(glyph(icon, 16.0, fg));
+        if let Some(l) = label {
+            b = b.child(rune::text(l.to_owned()).font(style::body(t)).color(rc(fg)));
         }
-        bar = bar.child(
-            el().size(32.0, 32.0)
-                .center()
-                .radius(4.0)
-                .role("button")
-                .label("More commands")
-                .hover_fill(rc(t.subtle_fill_color_secondary))
-                .child(glyph(Symbol::MoreHorizontal, 16.0, rc(t.text_fill_color_primary))),
-        );
-        el().radius(radii::OVERLAY)
-            .fill(rc(t.layer_fill_color_default))
-            .border(1.0, rc(t.card_stroke_color_default))
-            .box_shadow(winui_materials::elevation(theme, 8.0))
-            .child(bar)
+        let mut b = recipe.paint(b, enabled).role("button").label(label.unwrap_or("More").to_owned()).disabled(!enabled);
+        if checked {
+            b = b.checked(true);
+        }
+        if enabled { focus_rect(b, t, R) } else { b }
+    }
+    pub fn view(&self, t: &Theme) -> El {
+        let k = t.tokens();
+        let mut bar = row().gap(4.0).center_y().padding(4.0).radius(R_BAR).role("toolbar");
+        for (i, item) in self.items.iter().enumerate() {
+            bar = bar.child(match item {
+                AppBarItem::Separator => rune::el().size(1.0, 24.0).mx(4.0).fill(rc(k.divider_stroke_color_default)),
+                AppBarItem::Button { icon, label, enabled } => {
+                    let b = Self::app_button(t, *icon, Some(label), *enabled, false).key(format!("appbar:{label}"));
+                    if *enabled { self.press.attach(b, i) } else { b }
+                }
+                AppBarItem::Toggle { icon, label, checked } => {
+                    self.press.attach(Self::app_button(t, *icon, Some(label), true, *checked).key(format!("appbar:{label}")), i)
+                }
+            });
+        }
+        if self.overflow {
+            bar = bar.child(self.more.attach(Self::app_button(t, Symbol::MoreHorizontal, None, true, false).key("appbar:more"), ()));
+        }
+        bar
     }
 }
+
+const R_BAR: f32 = style::R_OVERLAY;
+
+impl_control!(MenuFlyout, Flyout, ComboBox, CommandBar);

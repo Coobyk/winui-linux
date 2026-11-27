@@ -1,351 +1,423 @@
-//! Selection controls: CheckBox, RadioButton, ToggleSwitch, RatingControl,
-//! Slider, and a swatch-grid stand-in for ColorPicker.
-//! Matches "Basic input" Gallery samples.
+//! Selection: `CheckBox`, `RadioButton`, `ToggleSwitch`, `RatingControl` (WinUI Gallery ›
+//! Basic input). Slider and ColorPicker live in `range`.
+use rune::{col, row, El};
 
-use rune::{Color, El, col, el, row, text};
-use winui_icons::Symbol;
-use winui_materials::rc;
-use winui_theme::{Theme, sizes};
+use crate::impl_control;
+use crate::shim::icons::Symbol;
+use crate::shim::theme;
+use crate::shim::theme::{sizes, Theme};
+use crate::style::{self, focus_rect, glyph, layers, rc, Hook, R};
 
-use crate::{body, glyph};
-
-/// Checkbox states, including indeterminate.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// Tri-state value (`IsThreeState`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub enum CheckState {
+    #[default]
     Unchecked,
     Checked,
     Indeterminate,
 }
 
-/// A WinUI CheckBox: 20px box, accent fill + check glyph when checked,
-/// accent fill + white bar when indeterminate, strong border when unchecked.
-#[derive(Clone, Debug)]
+/// `CheckBox` — Gallery "CheckBox": 20px box, 4px corners, 8px label gap, 32px row.
+#[derive(Clone, Default)]
 pub struct CheckBox {
-    pub label: String,
-    pub state: CheckState,
-    pub enabled: bool,
+    label: String,
+    state: CheckState,
+    enabled: bool,
+    three_state: bool,
+    key: Option<String>,
+    toggle: Hook<CheckState>,
 }
 
 impl CheckBox {
-    pub fn new(label: impl Into<String>, state: CheckState) -> Self {
-        Self { label: label.into(), state, enabled: true }
+    pub fn new(label: impl Into<String>) -> Self {
+        CheckBox { label: label.into(), enabled: true, ..Default::default() }
+    }
+    pub fn checked(mut self, on: bool) -> Self {
+        self.state = if on { CheckState::Checked } else { CheckState::Unchecked };
+        self
+    }
+    pub fn state(mut self, s: CheckState) -> Self {
+        self.state = s;
+        self
+    }
+    pub fn three_state(mut self, on: bool) -> Self {
+        self.three_state = on;
+        self
     }
     pub fn enabled(mut self, on: bool) -> Self {
         self.enabled = on;
         self
     }
-    pub fn view(&self, theme: &Theme) -> El {
-        let t = theme.tokens();
+    pub fn key(mut self, k: impl Into<String>) -> Self {
+        self.key = Some(k.into());
+        self
+    }
+    /// `f(state, next)`: Unchecked → Checked → (Indeterminate →) Unchecked.
+    pub fn on_toggle<S: 'static>(mut self, f: impl Fn(&mut S, CheckState) + 'static) -> Self {
+        self.toggle.press(f);
+        self
+    }
+    fn next(&self) -> CheckState {
+        match self.state {
+            CheckState::Unchecked => CheckState::Checked,
+            CheckState::Checked if self.three_state => CheckState::Indeterminate,
+            _ => CheckState::Unchecked,
+        }
+    }
+    pub fn view(&self, t: &Theme) -> El {
+        let k = t.tokens();
         let on = self.state != CheckState::Unchecked;
-        let (fill, border_c) = if !self.enabled {
-            (rc(t.control_fill_color_disabled), rc(t.control_strong_stroke_color_disabled))
-        } else if on {
-            (rc(t.accent_fill_color_default), rc(t.accent_fill_color_default))
-        } else {
-            (rc(t.control_fill_color_transparent), rc(t.control_strong_stroke_color_default))
+        let en = self.enabled;
+        let (rest, hover) = match (on, en) {
+            (false, true) => (
+                (k.control_alt_fill_color_secondary, Some(k.control_strong_stroke_color_default)),
+                (k.control_alt_fill_color_tertiary, Some(k.control_strong_stroke_color_default)),
+            ),
+            (false, false) => {
+                let d = (k.control_alt_fill_color_disabled, Some(k.control_strong_stroke_color_disabled));
+                (d, d)
+            }
+            (true, true) => ((k.accent_fill_color_default, None), (k.accent_fill_color_secondary, None)),
+            (true, false) => ((k.accent_fill_color_disabled, None), (k.accent_fill_color_disabled, None)),
         };
-        let mark = match self.state {
-            CheckState::Checked => glyph(Symbol::CheckMark, sizes::CHECKBOX_GLYPH_SIZE, rc(t.text_on_accent_fill_color_primary)),
-            CheckState::Indeterminate => el().size(10.0, 2.0).radius(1.0).fill(rc(t.text_on_accent_fill_color_primary)),
-            CheckState::Unchecked => el().size(0.0, 0.0),
+        let mark_c = if en { k.text_on_accent_fill_color_primary } else { k.text_on_accent_fill_color_disabled };
+        let mut bx = layers((20.0, 20.0), R, rest, hover).center();
+        bx = match self.state {
+            CheckState::Checked => bx.child(checkmark(mark_c)),
+            CheckState::Indeterminate => bx.child(rune::el().size(8.0, 1.5).radius(1.0).fill(rc(mark_c))),
+            CheckState::Unchecked => bx,
         };
-        row().role("checkbox")
-            .label(self.label.clone())
-            .items_center()
+        let fg = if en { k.text_fill_color_primary } else { k.text_fill_color_disabled };
+        let mut e = row()
             .min_h(sizes::CONTROL_HEIGHT)
-            .child(
-                el().size(sizes::CHECKBOX_SIZE, sizes::CHECKBOX_SIZE)
-                    .radius(4.0)
-                    .fill(fill)
-                    .border(1.0, border_c)
-                    .center()
-                    .child(mark),
-            )
-            .child(
-                text(self.label.clone())
-                    .font(body())
-                    .color(rc(if self.enabled { t.text_fill_color_primary } else { t.text_fill_color_disabled }))
-                    .ml(8.0)
-                    .nowrap(),
-            )
+            .gap(8.0)
+            .center_y()
+            .radius(R)
+            .hover_group()
+            .child(bx)
+            .child(rune::text(self.label.clone()).font(style::body(t)).color(rc(fg)))
+            .role("checkbox")
+            .label(self.label.clone())
+            .disabled(!en);
+        e = match self.state {
+            CheckState::Indeterminate => e.checked_mixed(),
+            s => e.checked(s == CheckState::Checked),
+        };
+        if en {
+            e = focus_rect(e.press_color(rc(k.text_fill_color_secondary)), t, R);
+            e = self.toggle.attach(e, self.next());
+        }
+        match &self.key {
+            Some(key) => e.key(key.clone()),
+            None => e,
+        }
     }
 }
 
-/// A WinUI RadioButton: 20px ring; checked = accent ring + white core +
-/// accent dot, unchecked = strong ring.
-#[derive(Clone, Debug)]
+/// `RadioButton` — Gallery "RadioButton": 20px ring, accent fill with a 12px dot when checked.
+#[derive(Clone, Default)]
 pub struct RadioButton {
-    pub label: String,
-    pub checked: bool,
-    pub enabled: bool,
+    label: String,
+    checked: bool,
+    enabled: bool,
+    key: Option<String>,
+    select: Hook<()>,
 }
 
 impl RadioButton {
-    pub fn new(label: impl Into<String>, checked: bool) -> Self {
-        Self { label: label.into(), checked, enabled: true }
+    pub fn new(label: impl Into<String>) -> Self {
+        RadioButton { label: label.into(), enabled: true, ..Default::default() }
+    }
+    pub fn checked(mut self, on: bool) -> Self {
+        self.checked = on;
+        self
     }
     pub fn enabled(mut self, on: bool) -> Self {
         self.enabled = on;
         self
     }
-    pub fn view(&self, theme: &Theme) -> El {
-        let t = theme.tokens();
-        let ring = if !self.enabled {
-            rc(t.control_strong_stroke_color_disabled)
-        } else if self.checked {
-            rc(t.accent_fill_color_default)
-        } else {
-            rc(t.control_strong_stroke_color_default)
+    pub fn key(mut self, k: impl Into<String>) -> Self {
+        self.key = Some(k.into());
+        self
+    }
+    pub fn on_select<S: 'static>(mut self, f: impl Fn(&mut S) + 'static) -> Self {
+        self.select.press(move |s: &mut S, ()| f(s));
+        self
+    }
+    pub fn view(&self, t: &Theme) -> El {
+        let k = t.tokens();
+        let en = self.enabled;
+        let c = 10.0;
+        let (rest, hover) = match (self.checked, en) {
+            (false, true) => (
+                (k.control_alt_fill_color_secondary, Some(k.control_strong_stroke_color_default)),
+                (k.control_alt_fill_color_tertiary, Some(k.control_strong_stroke_color_default)),
+            ),
+            (false, false) => {
+                let d = (k.control_alt_fill_color_disabled, Some(k.control_strong_stroke_color_disabled));
+                (d, d)
+            }
+            (true, true) => ((k.accent_fill_color_default, None), (k.accent_fill_color_secondary, None)),
+            (true, false) => ((k.accent_fill_color_disabled, None), (k.accent_fill_color_disabled, None)),
         };
-        let inner = if self.checked {
-            // Accent ring, white centre, accent dot — WinUI's checked glyph.
-            el().w_full()
-                .h_full()
-                .radius(999.0)
-                .border(1.0, ring)
-                .fill(rc(t.accent_fill_color_default))
-                .center()
-                .child(el().size(10.0, 10.0).radius(999.0).fill(rc(t.text_on_accent_fill_color_primary)))
-        } else {
-            el().w_full()
-                .h_full()
-                .radius(999.0)
-                .border(1.0, ring)
-        };
-        row().role("radio")
-            .label(self.label.clone())
-            .items_center()
+        let mut ring = layers((20.0, 20.0), c, rest, hover).center();
+        if self.checked {
+            let dot = if en { k.text_on_accent_fill_color_primary } else { k.text_on_accent_fill_color_disabled };
+            let d = |size: f32| rune::el().absolute((20.0 - size) / 2.0, (20.0 - size) / 2.0).size(size, size).radius(size / 2.0).fill(rc(dot));
+            ring = ring.child(d(12.0).group_opacity(1.0, 0.0)).child(d(14.0).group_opacity(0.0, 1.0));
+        }
+        let fg = if en { k.text_fill_color_primary } else { k.text_fill_color_disabled };
+        let mut e = row()
             .min_h(sizes::CONTROL_HEIGHT)
-            .child(el().size(20.0, 20.0).child(inner))
-            .child(
-                text(self.label.clone())
-                    .font(body())
-                    .color(rc(if self.enabled { t.text_fill_color_primary } else { t.text_fill_color_disabled }))
-                    .ml(8.0)
-                    .nowrap(),
-            )
+            .gap(8.0)
+            .center_y()
+            .radius(R)
+            .hover_group()
+            .child(ring)
+            .child(rune::text(self.label.clone()).font(style::body(t)).color(rc(fg)))
+            .role("radio")
+            .label(self.label.clone())
+            .checked(self.checked)
+            .disabled(!en);
+        if en {
+            e = focus_rect(e.press_color(rc(k.text_fill_color_secondary)), t, R);
+            e = self.select.attach(e, ());
+        }
+        match &self.key {
+            Some(key) => e.key(key.clone()),
+            None => e,
+        }
     }
 }
 
-/// A WinUI ToggleSwitch: 40×20 pill; off = ring + small knob, on = accent
-/// fill + larger light knob. Optional "On"/"Off" content label.
-#[derive(Clone, Debug)]
+/// A vertical group of `RadioButton`s with a header — Gallery "RadioButtons".
+#[derive(Clone, Default)]
+pub struct RadioButtons {
+    header: Option<String>,
+    items: Vec<String>,
+    selected: Option<usize>,
+    enabled: bool,
+    select: Hook<usize>,
+}
+
+impl RadioButtons {
+    pub fn new<I: Into<String>>(items: impl IntoIterator<Item = I>) -> Self {
+        RadioButtons { items: items.into_iter().map(Into::into).collect(), enabled: true, ..Default::default() }
+    }
+    pub fn header(mut self, h: impl Into<String>) -> Self {
+        self.header = Some(h.into());
+        self
+    }
+    pub fn selected(mut self, i: Option<usize>) -> Self {
+        self.selected = i;
+        self
+    }
+    pub fn enabled(mut self, on: bool) -> Self {
+        self.enabled = on;
+        self
+    }
+    pub fn on_select<S: 'static>(mut self, f: impl Fn(&mut S, usize) + 'static) -> Self {
+        self.select.press(f);
+        self
+    }
+    pub fn view(&self, t: &Theme) -> El {
+        let mut c = col().role("radiogroup");
+        if let Some(h) = &self.header {
+            c = c.child(header(h, t, self.enabled));
+        }
+        for (i, item) in self.items.iter().enumerate() {
+            let r = RadioButton::new(item.clone()).checked(self.selected == Some(i)).enabled(self.enabled).key(format!("radio:{item}"));
+            c = c.child(if self.enabled { self.select.attach(r.view(t), i) } else { r.view(t) });
+        }
+        c
+    }
+}
+
+/// A control header (`ControlHeaderThemeStyle`): body text, 8px above the control.
+pub fn header(s: &str, t: &Theme, enabled: bool) -> El {
+    let k = t.tokens();
+    rune::text(s.to_owned()).font(style::body(t)).color(rc(if enabled { k.text_fill_color_primary } else { k.text_fill_color_disabled })).pb(8.0)
+}
+
+/// `ToggleSwitch` — Gallery "ToggleSwitch": 40×20 pill track, 12px knob (14px on hover),
+/// On/Off content 12px to the right.
+#[derive(Clone)]
 pub struct ToggleSwitch {
-    pub on: bool,
-    pub enabled: bool,
-    /// Header shown above/left in the Gallery (None hides it).
-    pub header: Option<String>,
+    header: Option<String>,
+    on: bool,
+    enabled: bool,
+    on_content: String,
+    off_content: String,
+    key: Option<String>,
+    toggle: Hook<bool>,
+}
+
+impl Default for ToggleSwitch {
+    fn default() -> Self {
+        ToggleSwitch {
+            header: None,
+            on: false,
+            enabled: true,
+            on_content: "On".into(),
+            off_content: "Off".into(),
+            key: None,
+            toggle: Hook::default(),
+        }
+    }
 }
 
 impl ToggleSwitch {
-    pub fn new(on: bool) -> Self {
-        Self { on, enabled: true, header: None }
+    pub fn new() -> Self {
+        Self::default()
     }
     pub fn header(mut self, h: impl Into<String>) -> Self {
         self.header = Some(h.into());
+        self
+    }
+    pub fn on(mut self, on: bool) -> Self {
+        self.on = on;
         self
     }
     pub fn enabled(mut self, on: bool) -> Self {
         self.enabled = on;
         self
     }
-    pub fn view(&self, theme: &Theme) -> El {
-        let t = theme.tokens();
-        let (track_fill, track_border, knob_fill, knob_d) = if !self.enabled {
-            (rc(t.control_fill_color_disabled), rc(t.control_strong_stroke_color_disabled), rc(t.text_fill_color_disabled), 12.0)
-        } else if self.on {
-            (rc(t.accent_fill_color_default), rc(t.accent_fill_color_default), rc(t.text_on_accent_fill_color_primary), 14.0)
-        } else {
-            (rc(t.control_alt_fill_color_transparent), rc(t.control_strong_stroke_color_default), rc(t.text_fill_color_secondary), 12.0)
+    pub fn content(mut self, on: impl Into<String>, off: impl Into<String>) -> Self {
+        self.on_content = on.into();
+        self.off_content = off.into();
+        self
+    }
+    pub fn key(mut self, k: impl Into<String>) -> Self {
+        self.key = Some(k.into());
+        self
+    }
+    pub fn on_toggle<S: 'static>(mut self, f: impl Fn(&mut S, bool) + 'static) -> Self {
+        self.toggle.press(f);
+        self
+    }
+    pub fn view(&self, t: &Theme) -> El {
+        let k = t.tokens();
+        let en = self.enabled;
+        let (rest, hover, knob) = match (self.on, en) {
+            (false, true) => (
+                (k.control_alt_fill_color_secondary, Some(k.control_strong_stroke_color_default)),
+                (k.control_alt_fill_color_tertiary, Some(k.control_strong_stroke_color_default)),
+                k.text_fill_color_secondary,
+            ),
+            (false, false) => {
+                let d = (k.control_alt_fill_color_disabled, Some(k.control_strong_stroke_color_disabled));
+                (d, d, k.text_fill_color_disabled)
+            }
+            (true, true) => ((k.accent_fill_color_default, None), (k.accent_fill_color_secondary, None), k.text_on_accent_fill_color_primary),
+            (true, false) => ((k.accent_fill_color_disabled, None), (k.accent_fill_color_disabled, None), k.text_on_accent_fill_color_disabled),
         };
-        let pill = el().size(sizes::TOGGLE_SWITCH_WIDTH, sizes::TOGGLE_SWITCH_HEIGHT)
-            .radius(999.0)
-            .fill(track_fill)
-            .border(1.0, track_border)
-            .child(
-                el().size(knob_d, knob_d)
-                    .radius(999.0)
-                    .fill(knob_fill)
-                    .self_center()
-                    .ml(if self.on { sizes::TOGGLE_SWITCH_WIDTH - knob_d - 4.0 } else { 4.0 }),
-            );
-        let mut r = row().items_center().gap(10.0).child(pill);
-        if let Some(h) = &self.header {
-            r = r.child(text(h.clone()).font(body()).color(rc(t.text_fill_color_primary)).nowrap());
+        let knob_at = |size: f32| {
+            let x = if self.on { 40.0 - 4.0 - size + (size - 12.0) / 2.0 } else { 4.0 - (size - 12.0) / 2.0 };
+            rune::el().absolute(x, (20.0 - size) / 2.0).size(size, size).radius(size / 2.0).fill(rc(knob))
+        };
+        let track = layers((40.0, 20.0), 10.0, rest, hover)
+            .child(knob_at(12.0).group_opacity(1.0, 0.0))
+            .child(knob_at(14.0).group_opacity(0.0, 1.0));
+        let fg = if en { k.text_fill_color_primary } else { k.text_fill_color_disabled };
+        let content = if self.on { &self.on_content } else { &self.off_content };
+        let mut sw = row()
+            .min_h(sizes::CONTROL_HEIGHT)
+            .min_w(154.0)
+            .gap(12.0)
+            .center_y()
+            .radius(R)
+            .hover_group()
+            .child(track)
+            .child(rune::text(content.clone()).font(style::body(t)).color(rc(fg)))
+            .role("switch")
+            .label(self.header.clone().unwrap_or_else(|| content.clone()))
+            .checked(self.on)
+            .disabled(!en);
+        if en {
+            sw = focus_rect(sw, t, R);
+            sw = self.toggle.attach(sw, !self.on);
         }
-        r.role("switch").label(if self.on { "On" } else { "Off" })
+        if let Some(key) = &self.key {
+            sw = sw.key(key.clone());
+        }
+        match &self.header {
+            Some(h) => col().child(header(h, t, en)).child(sw),
+            None => sw,
+        }
     }
 }
 
-/// A read-only RatingControl: filled stars in the system text colour, the
-/// rest as outline stars. (Interactive picking is a Gallery extra.)
-#[derive(Clone, Debug)]
+/// `RatingControl` — Gallery "RatingControl": five 20px stars, 8px apart, accent when rated.
+#[derive(Clone)]
 pub struct RatingControl {
-    /// 0–5, halves allowed (e.g. 3.5).
-    pub value: f32,
-    pub enabled: bool,
+    value: f32,
+    max: u32,
+    enabled: bool,
+    caption: Option<String>,
+    key: String,
+    rate: Hook<u32>,
+}
+
+impl Default for RatingControl {
+    fn default() -> Self {
+        RatingControl { value: 0.0, max: 5, enabled: true, caption: None, key: "rating".into(), rate: Hook::default() }
+    }
 }
 
 impl RatingControl {
-    pub fn new(value: f32) -> Self {
-        Self { value: value.clamp(0.0, 5.0), enabled: true }
+    pub fn new() -> Self {
+        Self::default()
     }
-    pub fn view(&self, theme: &Theme) -> El {
-        let t = theme.tokens();
-        let c = if self.enabled {
-            rc(t.text_fill_color_primary)
-        } else {
-            rc(t.text_fill_color_disabled)
-        };
-        let mut stars = row().gap(4.0).items_center();
-        for i in 0..5 {
-            let v = self.value - i as f32;
-            let sym = if v >= 0.75 {
-                Symbol::StarFilled
-            } else if v >= 0.25 {
-                Symbol::StarHalf
-            } else {
-                Symbol::Star
-            };
-            stars = stars.child(glyph(sym, 16.0, c));
-        }
-        stars.role("slider").label(format!("{} stars", self.value))
-    }
-}
-
-/// A horizontal Slider: 4px rail, accent fill on the live portion, 20px
-/// ring thumb with a 12px core. `value` is 0..=1 of `min..=max`.
-#[derive(Clone, Debug)]
-pub struct Slider {
-    pub value: f32,
-    pub min: f32,
-    pub max: f32,
-    pub enabled: bool,
-    /// Optional header like the Gallery's "A Slider with a header".
-    pub header: Option<String>,
-}
-
-impl Slider {
-    pub fn new(value: f32) -> Self {
-        Self { value, min: 0.0, max: 100.0, enabled: true, header: None }
-    }
-    pub fn range(mut self, min: f32, max: f32) -> Self {
-        self.min = min;
-        self.max = max;
+    pub fn value(mut self, v: f32) -> Self {
+        self.value = v;
         self
     }
-    pub fn header(mut self, h: impl Into<String>) -> Self {
-        self.header = Some(h.into());
+    pub fn max(mut self, n: u32) -> Self {
+        self.max = n;
         self
     }
     pub fn enabled(mut self, on: bool) -> Self {
         self.enabled = on;
         self
     }
-    fn frac(&self) -> f32 {
-        ((self.value - self.min) / (self.max - self.min)).clamp(0.0, 1.0)
-    }
-    pub fn view(&self, theme: &Theme, width: f32) -> El {
-        let t = theme.tokens();
-        let f = self.frac();
-        let live = if self.enabled {
-            rc(t.accent_fill_color_default)
-        } else {
-            rc(t.accent_fill_color_disabled)
-        };
-        let rest = rc(if self.enabled {
-            t.control_strong_fill_color_default
-        } else {
-            t.control_strong_fill_color_disabled
-        })
-        .alpha(0.35);
-        let thumb_d = 20.0;
-        let thumb_x = (width - thumb_d) * f;
-        let track = el().w(width)
-            .h(32.0)
-            .child(
-                el().absolute(0.0, 14.0)
-                    .size(width, sizes::SLIDER_TRACK_HEIGHT)
-                    .radius(2.0)
-                    .fill(rest),
-            )
-            .child(
-                el().absolute(0.0, 14.0)
-                    .size((width * f).max(4.0), sizes::SLIDER_TRACK_HEIGHT)
-                    .radius(2.0)
-                    .fill(live),
-            )
-            .child(
-                el().absolute(thumb_x, 6.0)
-                    .size(thumb_d, thumb_d)
-                    .radius(999.0)
-                    .fill(live)
-                    .center()
-                    .child(
-                        el().size(12.0, 12.0)
-                            .radius(999.0)
-                            .fill(rc(t.control_fill_color_input_active))
-                            .border(1.0, rc(t.control_stroke_color_default)),
-                    ),
-            );
-        match &self.header {
-            Some(h) => col().gap(6.0)
-                .child(text(h.clone()).font(body()).color(rc(t.text_fill_color_primary)))
-                .child(track)
-                .role("slider")
-                .label(format!("{:.0}", self.value)),
-            None => track.role("slider").label(format!("{:.0}", self.value)),
-        }
-    }
-}
-
-/// The swatch grid half of a ColorPicker: rows of 24px rounded swatches with
-/// an accent ring + check on the selected one.
-#[derive(Clone, Debug)]
-pub struct ColorSwatchGrid {
-    pub swatches: Vec<Color>,
-    /// Index of the selected swatch, if any.
-    pub selected: Option<usize>,
-    pub columns: usize,
-}
-
-impl ColorSwatchGrid {
-    pub fn new(swatches: Vec<Color>) -> Self {
-        Self { swatches, selected: None, columns: 8 }
-    }
-    pub fn selected(mut self, i: usize) -> Self {
-        self.selected = Some(i);
+    pub fn caption(mut self, s: impl Into<String>) -> Self {
+        self.caption = Some(s.into());
         self
     }
-    pub fn view(&self, theme: &Theme) -> El {
-        let t = theme.tokens();
-        let mut grid = col().gap(4.0);
-        let mut i = 0;
-        while i < self.swatches.len() {
-            let mut r = row().gap(4.0);
-            for j in 0..self.columns {
-                let idx = i + j;
-                if idx >= self.swatches.len() {
-                    break;
-                }
-                let c = self.swatches[idx];
-                let mut sw = el().size(24.0, 24.0).radius(4.0).fill(c);
-                if self.selected == Some(idx) {
-                    sw = sw
-                        .border(2.0, rc(t.accent_fill_color_default))
-                        .child(
-                            el().w_full().h_full().center().child(
-                                glyph(Symbol::CheckMark, 12.0, Color::WHITE),
-                            ),
-                        );
-                } else {
-                    sw = sw.border(1.0, rc(t.control_stroke_color_default));
-                }
-                r = r.child(sw.role("button").label(format!("swatch {idx}")));
+    pub fn key(mut self, k: impl Into<String>) -> Self {
+        self.key = k.into();
+        self
+    }
+    pub fn on_rate<S: 'static>(mut self, f: impl Fn(&mut S, u32) + 'static) -> Self {
+        self.rate.press(f);
+        self
+    }
+    pub fn view(&self, t: &Theme) -> El {
+        let k = t.tokens();
+        let en = self.enabled;
+        let filled = if en { k.accent_fill_color_default } else { k.accent_fill_color_disabled };
+        let empty = if en { k.control_strong_stroke_color_default } else { k.control_strong_stroke_color_disabled };
+        let mut r = row().gap(8.0).center_y().min_h(sizes::CONTROL_HEIGHT).role("slider").label("Rating").range_value(self.value as f64, 0.0, self.max as f64);
+        for i in 0..self.max {
+            let on = self.value >= i as f32 + 0.5;
+            let star = if on { glyph(Symbol::StarFilled, 20.0, filled) } else { glyph(Symbol::Star, 20.0, empty) };
+            let mut cell = rune::el().size(20.0, 20.0).radius(R).child(star).key(format!("{}:{}", self.key, i + 1));
+            if en {
+                cell = self.rate.attach(cell.hover(rc(k.subtle_fill_color_secondary)), i + 1);
             }
-            grid = grid.child(r);
-            i += self.columns;
+            r = r.child(cell);
         }
-        grid
+        if let Some(c) = &self.caption {
+            r = r.child(rune::text(c.clone()).font(style::caption(t)).color(rc(k.text_fill_color_secondary)).pl(4.0));
+        }
+        if en { focus_rect(r.key(self.key.clone()), t, R) } else { r.key(self.key.clone()) }
     }
 }
+
+
+/// The CheckBox glyph (`CheckBoxCheckedGlyph`, E73E at 12px), stroked.
+pub(crate) fn checkmark(c: theme::Color) -> El {
+    rune::canvas(rune::Shape::new().stroke(vec![[1.5, 6.5], [4.5, 9.5], [10.5, 2.5]], 1.4, rc(c)).view_box(12.0, 12.0)).size(12.0, 12.0)
+}
+
+impl_control!(CheckBox, RadioButton, RadioButtons, ToggleSwitch, RatingControl);
