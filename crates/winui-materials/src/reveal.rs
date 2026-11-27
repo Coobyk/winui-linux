@@ -78,6 +78,7 @@ pub struct RevealLight {
     edge_top_left: Live<[f32; 4]>,
     edge_bottom: Live<[f32; 4]>,
     edge_right: Live<[f32; 4]>,
+    border_width: Live<f32>,
 }
 
 impl Default for RevealLight {
@@ -96,6 +97,7 @@ impl RevealLight {
             edge_top_left: Live::new([0.0; 4]),
             edge_bottom: Live::new([0.0; 4]),
             edge_right: Live::new([0.0; 4]),
+            border_width: Live::new(1.0),
         }
     }
 
@@ -103,7 +105,7 @@ impl RevealLight {
     /// (otherwise the size arrives with the first layout).
     pub fn with_size(size: [f32; 2]) -> Self {
         let light = Self::new();
-        light.set_size(size);
+        let _ = light.set_size(size);
         light
     }
 
@@ -137,9 +139,11 @@ impl RevealLight {
         self.hover_rect.get()
     }
 
-    fn set_size(&self, size: [f32; 2]) {
-        self.size.set(size);
+    /// Returns whether the size changed.
+    fn set_size(&self, size: [f32; 2]) -> bool {
+        let changed = self.size.set(size);
         self.place();
+        changed
     }
 
     fn place(&self) {
@@ -148,10 +152,11 @@ impl RevealLight {
         let square = |cx: f32, cy: f32, r: f32| [cx - r, cy - r, 2.0 * r, 2.0 * r];
         let rh = hover_light_radius([w, h]);
         let rb = border_light_radius();
+        let bw = self.border_width.get();
         self.hover_rect.set(square(x, y, rh));
         self.edge_top_left.set(square(x, y, rb));
-        self.edge_bottom.set(square(x, y - (h - 1.0).max(0.0), rb));
-        self.edge_right.set(square(x - (w - 1.0).max(0.0), y, rb));
+        self.edge_bottom.set(square(x, y - (h - bw).max(0.0), rb));
+        self.edge_right.set(square(x - (w - bw).max(0.0), y, rb));
     }
 }
 
@@ -195,9 +200,19 @@ pub fn reveal_with(style: &RevealStyle, light: &RevealLight) -> El {
     let border_r = border_light_radius();
     let bw = style.border_width;
     let edge = |rect: &Live<[f32; 4]>| pool(style.border, border_r, rect, &light.lit);
+    if light.border_width.set(bw) {
+        light.place();
+    }
     let (on_layout, on_move, on_hover) = (light.clone(), light.clone(), light.clone());
-    el().clip_rounded(style.radius)
-        .on_layout_any(move |r, _tx| on_layout.set_size([r[2], r[3]]))
+    // Pointer tracking lives on a full-size child so handlers the caller adds to the returned
+    // element don't replace it.
+    let tracker = el()
+        .pin(Some(0.0), Some(0.0), Some(0.0), Some(0.0))
+        .on_layout_any(move |r, tx| {
+            if !on_layout.set_size([r[2], r[3]]) {
+                tx.live_only();
+            }
+        })
         .on_pointer_move_any(move |p, tx| {
             on_move.point_at(p.x, p.y);
             tx.live_only();
@@ -207,7 +222,9 @@ pub fn reveal_with(style: &RevealStyle, light: &RevealLight) -> El {
                 on_hover.release();
             }
             tx.live_only();
-        })
+        });
+    el().clip_rounded(style.radius)
+        .child(tracker)
         .child(pool(style.hover, hover_r, &light.hover_rect, &light.lit))
         .child(strip(
             [Some(0.0), Some(0.0), Some(0.0), None],

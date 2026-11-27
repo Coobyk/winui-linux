@@ -122,7 +122,9 @@ fn row_view(s: &Row, _: &mut Cx<Row>) -> El {
     el().size(400.0, 200.0).child(
         reveal(&Theme::dark(), &s.light)
             .absolute(20.0, 30.0)
-            .size(300.0, 40.0),
+            .size(300.0, 40.0)
+            .on_hover_change_any(|_, tx| tx.live_only())
+            .child(rune::text("Home").pl(16.0)),
     )
 }
 
