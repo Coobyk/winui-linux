@@ -2,7 +2,7 @@
 //! (WinUI Gallery › Status & info, Dialogs & flyouts › TeachingTip).
 use std::f32::consts::{PI, TAU};
 
-use rune::{col, row, El, Shape};
+use rune::{col, row, El, LineCap, Path, Shape};
 
 use crate::buttons::Button;
 use crate::impl_control;
@@ -236,10 +236,10 @@ impl ProgressRing {
         };
         let mut shape = Shape::new();
         if self.value.is_some() {
-            shape = shape.stroke(arc(s, stroke, 0.0, TAU), stroke, rc(k.control_alt_fill_color_quarternary));
+            shape = shape.stroke_path(&arc_path(s, stroke, 0.0, TAU).close(), stroke, LineCap::Butt, rc(k.control_alt_fill_color_quarternary));
         }
         if sweep > 0.0 {
-            shape = shape.stroke(arc(s, stroke, start, sweep), stroke, rc(color));
+            shape = shape.stroke_path(&arc_path(s, stroke, start, sweep), stroke, LineCap::Round, rc(color));
         }
         let mut e = rune::canvas(shape).size(s, s).role("progressbar").label("Progress");
         if let Some(v) = self.value {
@@ -247,6 +247,12 @@ impl ProgressRing {
         }
         e
     }
+}
+
+/// One joined path, so wide strokes don't bead at the per-segment caps a point list draws.
+fn arc_path(size: f32, stroke: f32, start: f32, sweep: f32) -> Path {
+    let pts = arc(size, stroke, start, sweep);
+    pts[1..].iter().fold(Path::new().move_to(pts[0]), |p, &q| p.line_to(q))
 }
 
 fn arc(size: f32, stroke: f32, start: f32, sweep: f32) -> Vec<[f32; 2]> {
