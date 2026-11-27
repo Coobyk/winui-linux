@@ -162,16 +162,27 @@ pub(crate) fn chevron_right(t: &Theme) -> El {
     )
 }
 
-/// The clone inside the gallery: a titled window card at the screenshot's size.
+/// Widest preview that fits the gallery's content column at the default window size.
+const PREVIEW_W: f32 = 840.0;
+
+/// The clone inside the gallery: a titled window card, scaled down to fit the column.
 pub fn preview(a: App, t: &Theme) -> El {
     let k = t.tokens();
     let (w, h) = a.size();
+    let s = (PREVIEW_W / w).min(1.0);
     let window = el()
         .size(w, h)
         .radius(winui_theme::radii::OVERLAY)
         .border(1.0, c(k.surface_stroke_color_default))
         .clip_rounded(winui_theme::radii::OVERLAY)
-        .child(a.window(t));
+        .child(a.window(t))
+        .absolute(0.0, 0.0)
+        .origin(0.0, 0.0)
+        .scale(s);
+    let frame = el()
+        .size(w * s, h * s)
+        .clip_rounded(winui_theme::radii::OVERLAY)
+        .child(window);
     col()
         .w_full()
         .gap(16.0)
@@ -181,7 +192,7 @@ pub fn preview(a: App, t: &Theme) -> El {
             t.type_ramp().body,
             k.text_fill_color_secondary,
         ))
-        .child(el().w_full().clip_rounded(0.0).child(winui_materials::MaterialExt::theme_shadow(window, t, 32.0)))
+        .child(winui_materials::MaterialExt::theme_shadow(frame, t, 32.0))
 }
 
 /// The Windows logo: four squares with a 1 px gap.
