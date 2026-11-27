@@ -42,12 +42,12 @@ pub fn view(t: &Theme) -> El {
         .child(el().pl(10.0).grow(1.0).child(txt(
             "Windows PowerShell",
             t.type_ramp().caption.with_weight(600),
-            ink,
+            CAMPBELL_FOREGROUND,
         )))
         .child(
             el().size(28.0, 24.0)
                 .center()
-                .child(sym(Symbol::Dismiss, 12.0, ink)),
+                .child(sym(Symbol::Dismiss, 12.0, CAMPBELL_FOREGROUND)),
         );
     let strip = row()
         .w_full()
