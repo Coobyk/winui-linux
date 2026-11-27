@@ -24,6 +24,7 @@ pub struct SettingsCard {
     icon: Option<Symbol>,
     content: Option<El>,
     clickable: bool,
+    disabled: bool,
     key: Option<String>,
     click: Hook<()>,
 }
@@ -50,6 +51,10 @@ impl SettingsCard {
         self.clickable = on;
         self
     }
+    pub fn enabled(mut self, on: bool) -> Self {
+        self.disabled = !on;
+        self
+    }
     pub fn key(mut self, k: impl Into<String>) -> Self {
         self.key = Some(k.into());
         self
@@ -61,32 +66,39 @@ impl SettingsCard {
     }
     pub fn view(&self, t: &Theme) -> El {
         let k = t.tokens();
-        let mut text = col().grow(1.0).child(rune::text(self.header.clone()).font(style::body(t)).color(rc(k.text_fill_color_primary)));
+        let en = !self.disabled;
+        let (fg, fg2) = if en { (k.text_fill_color_primary, k.text_fill_color_secondary) } else { (k.text_fill_color_disabled, k.text_fill_color_disabled) };
+        let mut text = col().grow(1.0).child(rune::text(self.header.clone()).font(style::body(t)).color(rc(fg)));
         if let Some(d) = &self.description {
-            text = text.child(rune::text(d.clone()).font(style::caption(t)).color(rc(k.text_fill_color_secondary)));
+            text = text.child(rune::text(d.clone()).font(style::caption(t)).color(rc(fg2)));
         }
         let mut e = row().min_h(MIN_HEIGHT).padding(PADDING).center_y().grow(1.0);
-        // Rest and pointer-over fills (`SettingsCardBackground` = CardBackgroundFillColorDefault,
-        // `SettingsCardBackgroundPointerOver` = ControlFillColorSecondary) as layers inside the
-        // CardStrokeColorDefault ring, so the stroke composites over the page.
+        // `SettingsCardBackground` (CardBackgroundFillColorDefault) swapped for
+        // `SettingsCardBackgroundPointerOver` (ControlFillColorSecondary), both layers inside the
+        // CardStrokeColorDefault ring so the stroke composites over the page.
         let i = Some(style::INSET);
         let layer = |c| rune::el().pin(i, i, i, i).corners(style::inner([R; 4])).fill(rc(c));
-        e = e.radius(R).child(layer(k.card_background_fill_color_default));
-        if self.clickable {
+        let hover = self.clickable && en;
+        let rest = layer(k.card_background_fill_color_default);
+        e = e.radius(R).child(if hover { rest.group_opacity(1.0, 0.0) } else { rest });
+        if hover {
             e = e.hover_group().child(layer(k.control_fill_color_secondary).group_opacity(0.0, 1.0));
         }
         e = e.child(style::ring([R; 4], 0.0, k.card_stroke_color_default, k.card_stroke_color_default, false, 1.0));
         if let Some(s) = self.icon {
-            e = e.child(rune::el().size(ICON, ICON).mr(ICON_GAP).ml(2.0).center().child(glyph(s, ICON, k.text_fill_color_primary)));
+            e = e.child(rune::el().size(ICON, ICON).mr(ICON_GAP).ml(2.0).center().child(glyph(s, ICON, fg)));
         }
         e = e.child(text);
         if let Some(c) = &self.content {
             e = e.child(row().ml(16.0).center_y().child(c.clone()));
         }
         if self.clickable {
-            e = e.child(rune::el().ml(CHEVRON_GAP).child(glyph(Symbol::ChevronRight, CHEVRON, k.text_fill_color_primary)));
-            e = focus_rect(e.press_color(rc(k.text_fill_color_secondary)).role("button").label(self.header.clone()), t, R);
-            e = self.click.attach(e, ());
+            e = e.child(rune::el().ml(CHEVRON_GAP).child(glyph(Symbol::ChevronRight, CHEVRON, fg)));
+            e = e.role("button").label(self.header.clone()).disabled(!en);
+            if en {
+                e = focus_rect(e.press_color(rc(k.text_fill_color_secondary)), t, R);
+                e = self.click.attach(e, ());
+            }
         }
         match &self.key {
             Some(key) => e.key(key.clone()),
