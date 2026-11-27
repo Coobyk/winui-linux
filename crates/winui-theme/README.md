@@ -8,5 +8,11 @@ Fluent Design tokens for winui-linux — pure data, no rune dependency. Contract
 - `Theme::{light, dark, with_accent}` — `with_accent` derives a 7-step `AccentRamp`.
 - `TypeRamp` (Segoe UI Variable), `spacing`, `radii`, `sizes`, `motion`.
 
-Regenerate tokens: `python3 crates/winui-theme/tools/gen_tokens.py <Common_themeresources_any.xaml> <upstream-sha> > crates/winui-theme/src/tokens.rs` then `cargo fmt`.
+Regenerate tokens (download the pinned `Common_themeresources_any.xaml` first):
+
+```sh
+python3 crates/winui-theme/tools/gen_tokens.py Common_themeresources_any.xaml 92e77b8228c7814ab96861f085b2f5ddef3bb628 > crates/winui-theme/src/tokens.rs
+cargo fmt -p winui-theme
+```
+
 Try an accent: `cargo run -p winui-theme --example ramp -- '#881798'`.
