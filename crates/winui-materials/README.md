@@ -15,6 +15,6 @@ Rune has no Luminosity/Color blend modes, so the `El` form of Acrylic draws thos
 source-over; `AcrylicBrush::composite_over` computes the exact blended colour.
 
 ```sh
-cargo run -p winui-materials --example demo -- --scene mica|acrylic|reveal|shadow --snap out.png
-# add -light to a scene name for the light theme, e.g. --scene acrylic-light
+# scenes: mica, acrylic, reveal, shadow; add -light for the light theme (e.g. acrylic-light)
+cargo run -p winui-materials --example demo -- --scene acrylic --snap out.png
 ```
