@@ -9,6 +9,7 @@
 mod controls;
 mod fluent;
 mod pages;
+mod refs;
 
 use fluent::{c, font, icon};
 use rune::{AppSpec, Cx, El, ScrollSpec, col, el, row, text};
@@ -129,6 +130,8 @@ pub struct State {
     pub toggle: bool,
     pub slider: f32,
     pub search: String,
+    /// A `docs/reference` recreation shown instead of the gallery (`ref-*` scenes).
+    pub reference: Option<refs::Ref>,
 }
 
 impl Default for State {
@@ -141,6 +144,7 @@ impl Default for State {
             toggle: true,
             slider: 0.5,
             search: String::new(),
+            reference: None,
         }
     }
 }
@@ -339,6 +343,9 @@ fn view(s: &State, cx: &mut Cx<State>) -> El {
         s
     };
     let t = s.theme();
+    if let Some(r) = s.reference {
+        return refs::view(r, &t);
+    }
     let k = t.tokens();
     let content = col()
         .w_full()
@@ -379,7 +386,9 @@ fn view(s: &State, cx: &mut Cx<State>) -> El {
 }
 
 macro_rules! scenes {
-    ($($id:literal => $p:expr),* $(,)?) => { &[$(($id, |s: &mut State| s.page = $p)),*] };
+    ($($id:literal => $p:expr),* ; $($rid:literal => $r:expr),* $(,)?) => {
+        &[$(($id, |s: &mut State| s.page = $p),)* $(($rid, |s: &mut State| s.reference = Some($r)),)*]
+    };
 }
 
 /// Selawik, the metric-compatible open Segoe UI fallback, in the four weights the type ramp uses.
@@ -395,7 +404,11 @@ pub fn spec() -> AppSpec<State> {
         scenes: scenes![
             "home" => Page::Home, "buttons" => Page::Buttons, "input" => Page::Input, "collections" => Page::Collections,
             "menus" => Page::Menus, "navigation" => Page::Navigation, "status" => Page::Status, "media" => Page::Media,
-            "styles-icons" => Page::Icons, "styles-colors" => Page::Colors, "styles-type" => Page::Type, "settings" => Page::Settings,
+            "styles-icons" => Page::Icons, "styles-colors" => Page::Colors, "styles-type" => Page::Type, "settings" => Page::Settings;
+            "ref-settings" => refs::Ref::Settings, "ref-store" => refs::Ref::Store,
+            "ref-clock-timer" => refs::Ref::ClockTimer, "ref-clock-settings" => refs::Ref::ClockSettings,
+            "ref-calculator" => refs::Ref::Calculator, "ref-terminal" => refs::Ref::Terminal,
+            "ref-snippets" => refs::Ref::Snippets,
         ],
         fonts: FONTS,
         families: (fluent::families(), "ui-monospace"),
@@ -404,8 +417,31 @@ pub fn spec() -> AppSpec<State> {
     }
 }
 
+/// A `ref-*` scene opens at its reference capture's size unless `--size` is given.
+fn ref_size(args: &[String]) -> Option<(f32, f32)> {
+    if args
+        .iter()
+        .any(|a| a == "--size" || a.starts_with("--size="))
+    {
+        return None;
+    }
+    let scene = args
+        .iter()
+        .enumerate()
+        .find_map(|(i, a)| match a.strip_prefix("--scene=") {
+            Some(v) => Some(v),
+            None if a == "--scene" => args.get(i + 1).map(String::as_str),
+            None => None,
+        })?;
+    refs::Ref::from_id(scene).map(refs::Ref::size)
+}
+
 fn main() {
-    rune::run(spec());
+    let mut spec = spec();
+    if let Some(size) = ref_size(&std::env::args().collect::<Vec<_>>()) {
+        spec.size = size;
+    }
+    rune::run(spec);
 }
 
 #[cfg(test)]

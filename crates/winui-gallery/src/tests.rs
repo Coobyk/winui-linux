@@ -59,3 +59,16 @@ fn settings_toggle_theme_and_accent() {
         Theme::dark().tokens().accent_fill_color_default
     );
 }
+
+#[test]
+fn reference_scenes_register_and_build() {
+    let s = spec();
+    let mut rt = rt(true);
+    for r in refs::Ref::ALL {
+        assert!(s.scenes.iter().any(|(id, _)| *id == r.id()), "{}", r.id());
+        assert_eq!(refs::Ref::from_id(r.id()), Some(r));
+        rt.update(move |s, _| s.reference = Some(r));
+        rt.frame(0.0);
+        assert!(!rt.elements().is_empty(), "{}", r.id());
+    }
+}
