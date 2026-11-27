@@ -6,6 +6,7 @@
 
 #![forbid(unsafe_code)]
 
+mod apps;
 mod controls;
 mod fluent;
 mod pages;
@@ -129,6 +130,9 @@ pub struct State {
     pub toggle: bool,
     pub slider: f32,
     pub search: String,
+    /// An app-replica scene (`--scene calc`, ...) instead of the gallery shell.
+    pub app: Option<apps::App>,
+    pub calc: String,
 }
 
 impl Default for State {
@@ -141,6 +145,8 @@ impl Default for State {
             toggle: true,
             slider: 0.5,
             search: String::new(),
+            app: None,
+            calc: "0".into(),
         }
     }
 }
@@ -331,6 +337,7 @@ fn view(s: &State, cx: &mut Cx<State>) -> El {
     let s = if s.theme.is_none() && s.dark_system != sys {
         s2 = State {
             search: s.search.clone(),
+            calc: s.calc.clone(),
             ..*s
         };
         s2.dark_system = sys;
@@ -338,6 +345,9 @@ fn view(s: &State, cx: &mut Cx<State>) -> El {
     } else {
         s
     };
+    if let Some(app) = s.app {
+        return apps::view(s, app);
+    }
     let t = s.theme();
     let k = t.tokens();
     let content = col()
@@ -379,18 +389,33 @@ fn view(s: &State, cx: &mut Cx<State>) -> El {
 }
 
 macro_rules! scenes {
-    ($($id:literal => $p:expr),* $(,)?) => { &[$(($id, |s: &mut State| s.page = $p)),*] };
+    ($($id:literal => $p:expr),* ; $($aid:literal => $a:expr),* $(,)?) => {
+        &[$(($id, |s: &mut State| s.page = $p),)* $(($aid, |s: &mut State| s.app = Some($a)),)*]
+    };
 }
+
+/// Selawik (Segoe UI metrics, OFL) and Cascadia Mono (OFL) for the app replicas.
+const FONTS: &[&[u8]] = &[
+    include_bytes!("../assets/Selawik-Light.ttf"),
+    include_bytes!("../assets/Selawik-Regular.ttf"),
+    include_bytes!("../assets/Selawik-SemiBold.ttf"),
+    include_bytes!("../assets/Selawik-Bold.ttf"),
+    include_bytes!("../assets/CascadiaMono-Regular.ttf"),
+];
 
 pub fn spec() -> AppSpec<State> {
     AppSpec {
         scenes: scenes![
             "home" => Page::Home, "buttons" => Page::Buttons, "input" => Page::Input, "collections" => Page::Collections,
             "menus" => Page::Menus, "navigation" => Page::Navigation, "status" => Page::Status, "media" => Page::Media,
-            "styles-icons" => Page::Icons, "styles-colors" => Page::Colors, "styles-type" => Page::Type, "settings" => Page::Settings,
+            "styles-icons" => Page::Icons, "styles-colors" => Page::Colors, "styles-type" => Page::Type, "settings" => Page::Settings;
+            "calc" => apps::App::Calc, "winsettings" => apps::App::WinSettings, "store" => apps::App::Store,
+            "clock" => apps::App::Clock, "clocksettings" => apps::App::ClockSettings,
+            "snipping" => apps::App::Snipping, "terminal" => apps::App::Terminal,
         ],
-        families: (fluent::families(), "ui-monospace"),
-        min_size: Some((640.0, 480.0)),
+        fonts: FONTS,
+        families: (fluent::families(), "\"Cascadia Mono\", ui-monospace"),
+        min_size: Some((320.0, 200.0)),
         ..AppSpec::new("WinUI 3 Gallery", (1280.0, 800.0), State::default, view)
     }
 }

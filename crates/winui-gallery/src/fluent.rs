@@ -39,7 +39,9 @@ pub fn families() -> &'static str {
             format!("\"{}\"", fonts::TEXT),
             format!("\"{}\"", fonts::FAMILY),
         ];
-        v.extend(fonts::FALLBACKS.iter().map(|f| {
+        v.push("\"Segoe UI\"".into());
+        v.push("Selawik".into());
+        v.extend(fonts::FALLBACKS.iter().skip(1).map(|f| {
             if f.contains(' ') {
                 format!("\"{f}\"")
             } else {
