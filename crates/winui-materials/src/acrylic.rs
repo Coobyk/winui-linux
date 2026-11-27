@@ -26,6 +26,9 @@ pub struct Acrylic {
     pub use_fallback: bool,
     pub blur: f32,
     pub noise_opacity: f32,
+    /// Corner radius of the panel and its noise, so no clip is needed (a clip would cut the
+    /// panel's own shadow).
+    pub radius: f32,
 }
 
 impl Acrylic {
@@ -38,6 +41,7 @@ impl Acrylic {
             use_fallback: false,
             blur: ACRYLIC_BLUR,
             noise_opacity: NOISE_OPACITY,
+            radius: 0.0,
         }
     }
 
@@ -84,6 +88,11 @@ impl Acrylic {
         self
     }
 
+    pub fn radius(mut self, radius: f32) -> Self {
+        self.radius = radius.max(0.0);
+        self
+    }
+
     pub fn blur(mut self, sigma: f32) -> Self {
         self.blur = sigma.max(0.0);
         self
@@ -114,11 +123,12 @@ impl Acrylic {
     /// The material as a Rune element; size it and add children like any `El`.
     pub fn el(&self) -> El {
         if self.use_fallback {
-            return el().fill(to_rune(self.fallback));
+            return el().radius(self.radius).fill(to_rune(self.fallback));
         }
-        el().backdrop_blur(self.blur)
+        el().radius(self.radius)
+            .backdrop_blur(self.blur)
             .fill(self.layer_color())
-            .child(noise_layer(self.noise_opacity))
+            .child(noise_layer(self.noise_opacity).radius(self.radius))
     }
 }
 

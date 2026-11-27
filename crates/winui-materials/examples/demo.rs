@@ -101,19 +101,13 @@ fn menu(theme: &Theme, acrylic: Acrylic, title: &str) -> El {
                 .child(label(theme, item, BODY)),
         );
     }
-    // The shadow sits on a wrapper: the panel's rounded clip would cut its own outer shadow.
-    el().w(200.0)
+    acrylic
         .radius(8.0)
+        .el()
+        .w(200.0)
+        .border(1.0, to_rune(t.control_stroke_color_default))
         .elevation(32.0, theme.mode())
-        .child(
-            acrylic
-                .el()
-                .w_full()
-                .radius(8.0)
-                .clip_rounded(8.0)
-                .border(1.0, to_rune(t.control_stroke_color_default))
-                .child(list),
-        )
+        .child(list)
 }
 
 fn acrylic_scene(theme: &Theme) -> El {
