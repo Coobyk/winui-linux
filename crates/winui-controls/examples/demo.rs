@@ -146,9 +146,9 @@ fn slider(s: &State, t: &Theme) -> El {
 fn text(s: &State, t: &Theme) -> El {
     col().gap(24.0)
         .child(section(t, "TextBox", row().gap(24.0)
-            .child(TextBox::new(&s.name).header("Name").placeholder("Enter your name").on_edit(|s: &mut State| &mut s.name).view(t))
-            .child(TextBox::new(&rune::TextEdit::new("")).header("Focused").placeholder("Type here").focused(true).key("tb2").view(t))
-            .child(TextBox::new(&rune::TextEdit::new("Read only")).header("Disabled").enabled(false).key("tb3").view(t))))
+            .child(TextBox::new(&s.name).header("Name").placeholder("Enter your name").width(240.0).on_edit(|s: &mut State| &mut s.name).view(t))
+            .child(TextBox::new(&rune::TextEdit::new("")).header("Focused").placeholder("Type here").width(240.0).focused(true).key("tb2").view(t))
+            .child(TextBox::new(&rune::TextEdit::new("Read only")).header("Disabled").width(240.0).enabled(false).key("tb3").view(t))))
         .child(section(t, "PasswordBox, NumberBox", row().gap(24.0)
             .child(PasswordBox::new(&s.password).header("Password").on_edit(|s: &mut State| &mut s.password).view(t))
             .child(NumberBox::new(42.0, &s.number).header("Quantity").range(0.0, 100.0).on_edit(|s: &mut State| &mut s.number).view(t))))

@@ -95,27 +95,29 @@ impl MenuFlyout {
     pub fn view(&self, t: &Theme) -> El {
         let k = t.tokens();
         let has_icons = self.items.iter().any(|m| matches!(m, MenuItem::Item { icon: Some(_), .. } | MenuItem::Toggle { .. }));
-        let mut menu = flyout_surface(t).min_w(self.min_width).py(2.0).role("menu");
+        let mut menu = flyout_surface(t).min_w(self.min_width).px(4.0).py(2.0).role("menu");
         for (i, m) in self.items.iter().enumerate() {
             let e = match m {
                 MenuItem::Separator => rune::el().h(1.0).w_full().my(2.0).fill(rc(k.divider_stroke_color_default)),
                 MenuItem::Item { text, icon, accelerator, enabled } => {
                     let fg = if *enabled { k.text_fill_color_primary } else { k.text_fill_color_disabled };
-                    let mut r = list_row(t, *enabled, false).role("menuitem").label(text.clone()).key(format!("menu:{text}"));
+                    let mut r = list_row(t, *enabled, false).mx(0.0).role("menuitem").label(text.clone()).key(format!("menu:{text}"));
                     if let Some(s) = icon {
                         r = r.child(glyph(*s, 16.0, fg));
                     } else if has_icons {
                         r = r.child(rune::el().size(16.0, 16.0));
                     }
-                    r = r.child(rune::text(text.clone()).font(style::body(t)).color(rc(fg)).grow(1.0));
+                    r = r.child(rune::text(text.clone()).font(style::body(t)).color(rc(fg))).child(rune::spacer());
                     if let Some(a) = accelerator {
-                        r = r.child(rune::text(a.clone()).font(style::caption(t)).color(rc(k.text_fill_color_secondary)).pl(12.0));
+                        // MenuFlyoutItemKeyboardAcceleratorTextMargin is 24px: the row gap plus 12px.
+                        r = r.child(rune::el().w(12.0)).child(rune::text(a.clone()).font(style::caption(t)).color(rc(k.text_fill_color_secondary)));
                     }
                     if *enabled { self.select.attach(r, i) } else { r }
                 }
                 MenuItem::Toggle { text, checked } => {
                     let mark = if *checked { checkmark(k.text_fill_color_primary).size(16.0, 16.0) } else { rune::el().size(16.0, 16.0) };
                     let r = list_row(t, true, false)
+                        .mx(0.0)
                         .role("menuitemcheckbox")
                         .checked(*checked)
                         .label(text.clone())
