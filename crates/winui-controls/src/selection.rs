@@ -248,6 +248,7 @@ pub struct ToggleSwitch {
     enabled: bool,
     on_content: String,
     off_content: String,
+    rtl: bool,
     key: Option<String>,
     toggle: Hook<bool>,
 }
@@ -260,6 +261,7 @@ impl Default for ToggleSwitch {
             enabled: true,
             on_content: "On".into(),
             off_content: "Off".into(),
+            rtl: false,
             key: None,
             toggle: Hook::default(),
         }
@@ -285,6 +287,12 @@ impl ToggleSwitch {
     pub fn content(mut self, on: impl Into<String>, off: impl Into<String>) -> Self {
         self.on_content = on.into();
         self.off_content = off.into();
+        self
+    }
+    /// `FlowDirection="RightToLeft"`: content before the switch, as Settings-style cards
+    /// show "On ⬤" right-aligned.
+    pub fn right_to_left(mut self, on: bool) -> Self {
+        self.rtl = on;
         self
     }
     pub fn key(mut self, k: impl Into<String>) -> Self {
@@ -320,15 +328,14 @@ impl ToggleSwitch {
             .child(knob_at(14.0).group_opacity(0.0, 1.0));
         let fg = if en { k.text_fill_color_primary } else { k.text_fill_color_disabled };
         let content = if self.on { &self.on_content } else { &self.off_content };
-        let mut sw = row()
-            .min_h(sizes::CONTROL_HEIGHT)
-            .min_w(154.0)
-            .gap(12.0)
-            .center_y()
-            .radius(R)
-            .hover_group()
-            .child(track)
-            .child(rune::text(content.clone()).font(style::body(t)).color(rc(fg)))
+        let mut sw = row().min_h(sizes::CONTROL_HEIGHT).gap(12.0).center_y().radius(R).hover_group();
+        if content.is_empty() {
+            sw = sw.child(track);
+        } else {
+            let text = rune::text(content.clone()).font(style::body(t)).color(rc(fg));
+            sw = if self.rtl { sw.child(text).child(track) } else { sw.min_w(154.0).child(track).child(text) };
+        }
+        let mut sw = sw
             .role("switch")
             .label(self.header.clone().unwrap_or_else(|| content.clone()))
             .checked(self.on)
