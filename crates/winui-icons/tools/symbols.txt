@@ -94,7 +94,7 @@ Code | Code | regular | Code
 Document | Document | regular | Document
 DocumentAdd | Document Add | regular | -
 Folder | Folder | regular | Folder
-FolderOpen | Folder Open | regular | OpenLocal
+FolderOpen | Folder Open | regular | FolderOpen
 Print | Print | regular | Print
 Tag | Tag | regular | Tag
 Pin | Pin | regular | Pin
@@ -212,7 +212,7 @@ Calculator | Calculator | regular | Calculator
 Location | Location | regular | Location
 Map | Map | regular | -
 Building | Building | regular | -
-Cart | Cart | regular | Shop
+Cart | Cart | regular | ShoppingCart
 Gift | Gift | regular | -
 Games | Games | regular | Game
 Ruler | Ruler | regular | Ruler

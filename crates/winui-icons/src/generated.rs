@@ -1587,7 +1587,7 @@ impl Symbol {
             Symbol::Code => Some('\u{E943}'), // Code
             Symbol::Document => Some('\u{E8A5}'), // Document
             Symbol::Folder => Some('\u{E8B7}'), // Folder
-            Symbol::FolderOpen => Some('\u{E8DA}'), // OpenLocal
+            Symbol::FolderOpen => Some('\u{E838}'), // FolderOpen
             Symbol::Print => Some('\u{E749}'), // Print
             Symbol::Tag => Some('\u{E8EC}'), // Tag
             Symbol::Pin => Some('\u{E718}'), // Pin
@@ -1673,7 +1673,7 @@ impl Symbol {
             Symbol::Bug => Some('\u{EBE8}'), // Bug
             Symbol::Calculator => Some('\u{E8EF}'), // Calculator
             Symbol::Location => Some('\u{E81D}'), // Location
-            Symbol::Cart => Some('\u{E719}'), // Shop
+            Symbol::Cart => Some('\u{E7BF}'), // ShoppingCart
             Symbol::Games => Some('\u{E7FC}'), // Game
             Symbol::Ruler => Some('\u{ED5E}'), // Ruler
             Symbol::Wrench => Some('\u{E90F}'), // Repair
