@@ -403,19 +403,14 @@ const FONTS: &[&[u8]] = &[
     include_bytes!("../assets/CascadiaMono-Regular.ttf"),
 ];
 
-/// App replicas open at their screenshot size, below the gallery's 640x480 minimum
-/// (Calculator is 328 px wide).
-fn app_scene() -> bool {
-    let mut args = std::env::args();
-    while let Some(a) = args.next() {
-        let id = match a.strip_prefix("--scene=") {
-            Some(id) => id.to_string(),
-            None if a == "--scene" => args.next().unwrap_or_default(),
-            None => continue,
-        };
-        return apps::App::ALL.iter().any(|app| app.id() == id);
-    }
-    false
+/// The app replica `--scene <id>` selects (Rune reads the last `--scene`). Replicas have
+/// fixed screenshot layouts, so their window minimum is the reference size.
+fn app_scene() -> Option<apps::App> {
+    let args: Vec<_> = std::env::args_os().collect();
+    let id = args.windows(2).filter(|w| w[0] == "--scene").last()?[1]
+        .to_str()?
+        .to_owned();
+    apps::App::ALL.into_iter().find(|app| app.id() == id)
 }
 
 pub fn spec() -> AppSpec<State> {
@@ -430,11 +425,7 @@ pub fn spec() -> AppSpec<State> {
         ],
         fonts: FONTS,
         families: (fluent::families(), "\"Cascadia Mono\", ui-monospace"),
-        min_size: Some(if app_scene() {
-            (320.0, 200.0)
-        } else {
-            (640.0, 480.0)
-        }),
+        min_size: Some(app_scene().map_or((640.0, 480.0), apps::App::size)),
         ..AppSpec::new("WinUI 3 Gallery", (1280.0, 800.0), State::default, view)
     }
 }
