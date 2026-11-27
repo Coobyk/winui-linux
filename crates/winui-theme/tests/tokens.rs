@@ -177,9 +177,9 @@ fn derived_accent_buttons_keep_text_contrast() {
         for theme in [Theme::light(), Theme::dark()] {
             let t = theme.with_accent(accent);
             let k = t.tokens();
-            let ratio = k
-                .accent_fill_color_default
-                .contrast_ratio(k.text_on_accent_fill_color_primary);
+            // Measure what downstream sees after hex export.
+            let fill = Color::from_hex(&k.accent_fill_color_default.to_string()).unwrap();
+            let ratio = fill.contrast_ratio(k.text_on_accent_fill_color_primary);
             assert!(ratio >= 4.5, "{hex} {:?}: {ratio}", theme.mode());
         }
     }

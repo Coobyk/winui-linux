@@ -109,7 +109,7 @@ impl Default for AccentRamp {
 const MIN_TEXT_CONTRAST: f32 = 4.5;
 
 /// Move `c` in OKLCH lightness (darker or lighter) just far enough to reach
-/// [`MIN_TEXT_CONTRAST`] against `text`.
+/// [`MIN_TEXT_CONTRAST`] against `text`, measured after 8-bit quantization.
 fn with_contrast(c: Color, text: Color, darker: bool) -> Color {
     if c.contrast_ratio(text) >= MIN_TEXT_CONTRAST {
         return c;
@@ -118,10 +118,16 @@ fn with_contrast(c: Color, text: Color, darker: bool) -> Color {
     let (mut lo, mut hi) = if darker { (0.0, l) } else { (l, 1.0) };
     for _ in 0..24 {
         let mid = (lo + hi) / 2.0;
-        let ok = from_lch_in_gamut(mid, ch, h).contrast_ratio(text) >= MIN_TEXT_CONTRAST;
+        let ok = quantized(from_lch_in_gamut(mid, ch, h)).contrast_ratio(text) >= MIN_TEXT_CONTRAST;
         if ok == darker { lo = mid } else { hi = mid }
     }
-    from_lch_in_gamut(if darker { lo } else { hi }, ch, h)
+    quantized(from_lch_in_gamut(if darker { lo } else { hi }, ch, h))
+}
+
+/// Snap to 8-bit so the contrast guarantee survives hex/ARGB export.
+fn quantized(c: Color) -> Color {
+    let [r, g, b, _] = c.to_rgba8();
+    Color::rgb(r, g, b)
 }
 
 fn not_lighter_than(c: Color, limit: Color) -> Color {
