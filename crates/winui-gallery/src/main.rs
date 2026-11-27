@@ -403,6 +403,21 @@ const FONTS: &[&[u8]] = &[
     include_bytes!("../assets/CascadiaMono-Regular.ttf"),
 ];
 
+/// App replicas are smaller than the gallery's minimum window (Calculator is 328 px wide),
+/// and headless `--size` is clamped to `min_size`, so they get a smaller one.
+fn app_scene() -> bool {
+    let mut args = std::env::args();
+    while let Some(a) = args.next() {
+        let id = match a.strip_prefix("--scene=") {
+            Some(id) => id.to_string(),
+            None if a == "--scene" => args.next().unwrap_or_default(),
+            None => continue,
+        };
+        return apps::App::ALL.iter().any(|app| app.id() == id);
+    }
+    false
+}
+
 pub fn spec() -> AppSpec<State> {
     AppSpec {
         scenes: scenes![
@@ -415,7 +430,7 @@ pub fn spec() -> AppSpec<State> {
         ],
         fonts: FONTS,
         families: (fluent::families(), "\"Cascadia Mono\", ui-monospace"),
-        min_size: Some((320.0, 200.0)),
+        min_size: Some((640.0, 480.0)),
         ..AppSpec::new("WinUI 3 Gallery", (1280.0, 800.0), State::default, view)
     }
 }
