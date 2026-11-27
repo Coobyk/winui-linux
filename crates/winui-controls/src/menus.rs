@@ -238,13 +238,12 @@ impl ComboBox {
             None => (self.placeholder.clone(), if en { k.text_fill_color_secondary } else { k.text_fill_color_disabled }),
         };
         let mut face = row()
-            .w(self.width)
-            .h(sizes::CONTROL_HEIGHT)
-            .pl(12.0)
-            .pr(10.0)
+            .w(self.width - 2.0 * style::INSET)
+            .h(sizes::CONTROL_HEIGHT - 2.0 * style::INSET)
+            .pl(12.0 - style::INSET)
+            .pr(10.0 - style::INSET)
             .pb(1.0)
             .center_y()
-            .radius(R)
             .child(rune::text(text).font(style::body(t)).color(rc(color)).grow(1.0))
             .child(glyph(Symbol::ChevronDown, 12.0, if en { k.text_fill_color_secondary } else { k.text_fill_color_disabled }))
             .role("combobox")
@@ -253,7 +252,7 @@ impl ComboBox {
             .key(self.key.clone());
         face = recipe.paint(face, en);
         if en {
-            face = self.toggle.attach(focus_rect(face, t, R), !self.open);
+            face = self.toggle.attach(style::focus_rect_inset(face, t, R, style::INSET), !self.open);
         }
         // The popup mounts before its anchor so it lifts above later siblings.
         let mut out = col();
@@ -328,7 +327,8 @@ impl CommandBar {
         let k = t.tokens();
         let recipe = if checked { style::Recipe::accent(k) } else { style::Recipe::subtle(k) };
         let fg = recipe.fg(enabled);
-        let mut b = row().h(40.0).px(12.0).gap(8.0).center().radius(R).child(glyph(icon, 16.0, fg));
+        let inset = if recipe.border.is_some() { style::INSET } else { 0.0 };
+        let mut b = row().h(40.0 - 2.0 * inset).px(12.0 - inset).gap(8.0).center().radius(R).child(glyph(icon, 16.0, fg));
         if let Some(l) = label {
             b = b.child(rune::text(l.to_owned()).font(style::body(t)).color(rc(fg)));
         }
@@ -336,7 +336,7 @@ impl CommandBar {
         if checked {
             b = b.checked(true);
         }
-        if enabled { focus_rect(b, t, R) } else { b }
+        if enabled { style::focus_rect_inset(b, t, R, inset) } else { b }
     }
     pub fn view(&self, t: &Theme) -> El {
         let k = t.tokens();
