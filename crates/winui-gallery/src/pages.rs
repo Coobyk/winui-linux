@@ -60,6 +60,7 @@ pub fn page(s: &State, t: &Theme) -> El {
     let p = s.page;
     let body = match p {
         Page::Home => return home(t),
+        Page::App(a) => return crate::apps::preview(a, t),
         Page::Buttons => col().w_full()
             .child(header(t, "Buttons", "Buttons give the user a way to trigger an immediate action. Some buttons are specialized for particular tasks, such as navigation, repeated actions, or presenting menus."))
             .child(example(t, "A simple Button with text content.", hrow().child(button(t, "Standard XAML button", false, true)).child(button(t, "Disabled", false, false))))

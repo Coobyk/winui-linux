@@ -3,7 +3,7 @@
 //! The integrator replaces these with `winui_controls` components.
 
 use crate::fluent::{c, elevation_border, font, icon, shadow};
-use rune::{El, Shape, col, el, row, text};
+use rune::{El, col, el, row, text};
 use winui_icons::Symbol;
 use winui_theme::{Theme, radii, sizes};
 
@@ -13,96 +13,22 @@ fn body(t: &Theme, s: &str, color: winui_theme::Color) -> El {
 
 /// Standard / accent `Button` (Button_themeresources.xaml).
 pub fn button(t: &Theme, label: &str, accent: bool, enabled: bool) -> El {
-    let k = t.tokens();
-    let (fill, hover, press, fg) = match (accent, enabled) {
-        (false, true) => (
-            k.control_fill_color_default,
-            k.control_fill_color_secondary,
-            k.control_fill_color_tertiary,
-            k.text_fill_color_primary,
-        ),
-        (true, true) => (
-            k.accent_fill_color_default,
-            k.accent_fill_color_secondary,
-            k.accent_fill_color_tertiary,
-            k.text_on_accent_fill_color_primary,
-        ),
-        (false, false) => (
-            k.control_fill_color_disabled,
-            k.control_fill_color_disabled,
-            k.control_fill_color_disabled,
-            k.text_fill_color_disabled,
-        ),
-        (true, false) => (
-            k.accent_fill_color_disabled,
-            k.accent_fill_color_disabled,
-            k.accent_fill_color_disabled,
-            k.text_on_accent_fill_color_disabled,
-        ),
-    };
-    let p = sizes::BUTTON_PADDING;
-    let b = row()
-        .h(sizes::CONTROL_HEIGHT)
-        .items_center()
-        .pl(p.left)
-        .pr(p.right)
-        .radius(radii::CONTROL)
-        .fill(c(fill))
-        .hover(c(hover))
-        .press(c(press))
-        .focusable(enabled)
-        .role("button")
-        .label(label.to_string())
-        .child(body(t, label, fg));
-    let b = if !enabled {
-        if accent {
-            b
-        } else {
-            b.border(1.0, c(k.control_stroke_color_default))
-        }
-    } else if accent {
-        elevation_border(b, &k.accent_control_elevation_border, sizes::CONTROL_HEIGHT)
-    } else {
-        elevation_border(b, &k.control_elevation_border, sizes::CONTROL_HEIGHT)
-    };
-    b.w_fit()
+    winui_controls::Button::new(label)
+        .accent(accent)
+        .enabled(enabled)
+        .view(t)
 }
 
 pub fn icon_button(t: &Theme, sym: Symbol, label: &str) -> El {
-    let k = t.tokens();
-    elevation_border(
-        row()
-            .h(32.0)
-            .items_center()
-            .gap(8.0)
-            .px(11.0)
-            .radius(radii::CONTROL)
-            .fill(c(k.control_fill_color_default))
-            .hover(c(k.control_fill_color_secondary))
-            .press(c(k.control_fill_color_tertiary))
-            .child(icon(sym, 16.0, k.text_fill_color_primary))
-            .child(body(t, label, k.text_fill_color_primary)),
-        &k.control_elevation_border,
-        32.0,
-    )
-    .w_fit()
+    winui_controls::Button::new(label).icon(sym).view(t)
 }
 
 pub fn hyperlink(t: &Theme, label: &str) -> El {
-    let k = t.tokens();
-    row()
-        .h(32.0)
-        .items_center()
-        .px(11.0)
-        .radius(radii::CONTROL)
-        .hover(c(k.subtle_fill_color_secondary))
-        .press(c(k.subtle_fill_color_tertiary))
-        .child(body(t, label, k.accent_text_fill_color_primary))
-        .w_fit()
+    winui_controls::HyperlinkButton::new(label).view(t)
 }
 
 pub fn toggle_button(t: &Theme, label: &str, on: bool) -> El {
-    button(t, label, on, true)
+    winui_controls::ToggleButton::new(label).checked(on).view(t)
 }
 
 fn chevron_box(_t: &Theme, fg: winui_theme::Color) -> El {
@@ -111,217 +37,45 @@ fn chevron_box(_t: &Theme, fg: winui_theme::Color) -> El {
 }
 
 pub fn dropdown_button(t: &Theme, label: &str) -> El {
-    let k = t.tokens();
-    elevation_border(
-        row()
-            .h(32.0)
-            .items_center()
-            .gap(8.0)
-            .pl(11.0)
-            .pr(9.0)
-            .radius(radii::CONTROL)
-            .fill(c(k.control_fill_color_default))
-            .hover(c(k.control_fill_color_secondary))
-            .child(body(t, label, k.text_fill_color_primary))
-            .child(chevron_box(t, k.text_fill_color_secondary)),
-        &k.control_elevation_border,
-        32.0,
-    )
-    .w_fit()
+    winui_controls::DropDownButton::new(label).view(t)
 }
 
 pub fn split_button(t: &Theme, label: &str) -> El {
-    let k = t.tokens();
-    elevation_border(
-        row()
-            .h(32.0)
-            .items_center()
-            .radius(radii::CONTROL)
-            .fill(c(k.control_fill_color_default))
-            .child(
-                row()
-                    .h_full()
-                    .items_center()
-                    .px(11.0)
-                    .hover(c(k.control_fill_color_secondary))
-                    .child(body(t, label, k.text_fill_color_primary)),
-            )
-            .child(el().w(1.0).h_full().fill(c(k.control_stroke_color_default)))
-            .child(
-                row()
-                    .h_full()
-                    .w(36.0)
-                    .center()
-                    .hover(c(k.control_fill_color_secondary))
-                    .child(chevron_box(t, k.text_fill_color_secondary)),
-            ),
-        &k.control_elevation_border,
-        32.0,
-    )
-    .w_fit()
+    winui_controls::SplitButton::new(label).view(t)
 }
 
 pub fn checkbox(t: &Theme, label: &str, state: Option<bool>, enabled: bool) -> El {
-    let k = t.tokens();
-    let checked = state != Some(false);
-    let mut bx = el()
-        .size(sizes::CHECKBOX_SIZE, sizes::CHECKBOX_SIZE)
-        .radius(radii::CONTROL)
-        .center();
-    bx = if checked {
-        bx.fill(c(if enabled {
-            k.accent_fill_color_default
-        } else {
-            k.accent_fill_color_disabled
-        }))
-    } else {
-        bx.fill(c(k.control_alt_fill_color_secondary))
-            .hover(c(k.control_alt_fill_color_tertiary))
-            .border(
-                1.0,
-                c(if enabled {
-                    k.control_strong_stroke_color_default
-                } else {
-                    k.control_strong_stroke_color_disabled
-                }),
-            )
+    use winui_controls::CheckState;
+    let st = match state {
+        Some(true) => CheckState::Checked,
+        Some(false) => CheckState::Unchecked,
+        None => CheckState::Indeterminate,
     };
-    let on = if enabled {
-        k.text_on_accent_fill_color_primary
-    } else {
-        k.text_on_accent_fill_color_disabled
-    };
-    bx = match state {
-        Some(true) => bx.child(icon(Symbol::CheckMark, sizes::CHECKBOX_GLYPH_SIZE, on)),
-        None => bx.child(el().size(8.0, 1.0).radius(0.5).fill(c(on))),
-        Some(false) => bx,
-    };
-    let fg = if enabled {
-        k.text_fill_color_primary
-    } else {
-        k.text_fill_color_disabled
-    };
-    row()
-        .items_center()
-        .min_h(32.0)
-        .gap(8.0)
-        .role("checkbox")
-        .child(bx)
-        .child(body(t, label, fg))
-        .w_fit()
+    winui_controls::CheckBox::new(label)
+        .three_state(state.is_none())
+        .state(st)
+        .enabled(enabled)
+        .view(t)
 }
 
 pub fn radio(t: &Theme, label: &str, on: bool) -> El {
-    let k = t.tokens();
-    let dot = if on {
-        el().size(20.0, 20.0)
-            .radius(10.0)
-            .fill(c(k.accent_fill_color_default))
-            .center()
-            .child(
-                el().size(12.0, 12.0)
-                    .radius(6.0)
-                    .fill(c(k.text_on_accent_fill_color_primary)),
-            )
-    } else {
-        el().size(20.0, 20.0)
-            .radius(10.0)
-            .fill(c(k.control_alt_fill_color_secondary))
-            .border(1.0, c(k.control_strong_stroke_color_default))
-    };
-    row()
-        .items_center()
-        .min_h(32.0)
-        .gap(8.0)
-        .role("radio")
-        .child(dot)
-        .child(body(t, label, k.text_fill_color_primary))
-        .w_fit()
+    winui_controls::RadioButton::new(label).checked(on).view(t)
 }
 
 /// `ToggleSwitch`, 40×20 track with 12px knob, On/Off content.
 pub fn toggle_switch(t: &Theme, on: bool, header: Option<&str>) -> El {
-    let k = t.tokens();
-    let track = if on {
-        el().size(40.0, 20.0)
-            .radius(10.0)
-            .fill(c(k.accent_fill_color_default))
-            .hover(c(k.accent_fill_color_secondary))
-            .child(
-                el().size(12.0, 12.0)
-                    .radius(6.0)
-                    .fill(c(k.text_on_accent_fill_color_primary))
-                    .absolute(24.0, 4.0),
-            )
-    } else {
-        el().size(40.0, 20.0)
-            .radius(10.0)
-            .fill(c(k.control_alt_fill_color_secondary))
-            .hover(c(k.control_alt_fill_color_tertiary))
-            .border(1.0, c(k.control_strong_stroke_color_default))
-            .child(
-                el().size(12.0, 12.0)
-                    .radius(6.0)
-                    .fill(c(k.text_fill_color_secondary))
-                    .absolute(4.0, 4.0),
-            )
-    };
-    let r = row()
-        .items_center()
-        .gap(12.0)
-        .h(32.0)
-        .role("switch")
-        .checked(on)
-        .child(track)
-        .child(body(
-            t,
-            if on { "On" } else { "Off" },
-            k.text_fill_color_primary,
-        ));
-    match header {
-        Some(h) => col()
-            .gap(4.0)
-            .child(body(t, h, k.text_fill_color_primary))
-            .child(r),
-        None => r,
+    let mut s = winui_controls::ToggleSwitch::new().on(on);
+    if let Some(h) = header {
+        s = s.header(h);
     }
+    s.view(t)
 }
 
 pub fn slider(t: &Theme, value: f32, width: f32) -> El {
-    let k = t.tokens();
-    let x = (width - 20.0) * value.clamp(0.0, 1.0);
-    let thumb = el()
-        .size(20.0, 20.0)
-        .radius(10.0)
-        .fill(c(k.control_solid_fill_color_default))
-        .center()
-        .border_gradient(
-            1.0,
-            c(k.circle_elevation_border.top(20.0)),
-            c(k.circle_elevation_border.bottom(20.0)),
-        )
-        .child(
-            el().size(12.0, 12.0)
-                .radius(6.0)
-                .fill(c(k.accent_fill_color_default)),
-        );
-    el().w(width)
-        .h(32.0)
-        .child(
-            el().w(width)
-                .h(4.0)
-                .radius(2.0)
-                .fill(c(k.control_strong_fill_color_default))
-                .absolute(0.0, 14.0),
-        )
-        .child(
-            el().w(x + 10.0)
-                .h(4.0)
-                .radius(2.0)
-                .fill(c(k.accent_fill_color_default))
-                .absolute(0.0, 14.0),
-        )
-        .child(thumb.absolute(x, 6.0))
+    winui_controls::Slider::new()
+        .value(f64::from(value) * 100.0)
+        .width(width)
+        .view(t)
 }
 
 /// `TextBox`: placeholder in TextFillColorSecondary, bottom stroke ControlStrongStrokeColorDefault.
@@ -610,87 +364,28 @@ pub fn info_bar(t: &Theme, sev: Severity, title: &str, message: &str) -> El {
 
 /// Determinate ProgressBar: 1px track (ControlStrongStrokeColorDefault) and 3px accent indicator.
 pub fn progress_bar(t: &Theme, value: Option<f32>, width: f32) -> El {
-    let k = t.tokens();
-    let (x, w) = match value {
-        Some(v) => (0.0, width * v),
-        None => (width * 0.3, width * 0.4),
-    };
-    el().w(width)
-        .h(4.0)
-        .child(
-            el().w(width)
-                .h(1.0)
-                .fill(c(k.control_strong_stroke_color_default))
-                .absolute(0.0, 1.5),
-        )
-        .child(
-            el().w(w)
-                .h(3.0)
-                .radius(1.5)
-                .fill(c(k.accent_fill_color_default))
-                .absolute(x, 0.5),
-        )
+    let b = winui_controls::ProgressBar::new().width(width);
+    match value {
+        Some(v) => b.value(v * 100.0),
+        None => b,
+    }
+    .view(t)
 }
 
 /// ProgressRing: 4px accent arc over a 32px ring (`value` None = indeterminate pose).
 pub fn progress_ring(t: &Theme, value: Option<f32>, size: f32) -> El {
-    let k = t.tokens();
-    let (a0, sweep) = match value {
-        Some(v) => (-90f32, 360.0 * v.min(0.999)),
-        None => (-30.0, 110.0),
-    };
-    let r = (size - 4.0) / 2.0;
-    let pt = |deg: f32| {
-        let a = deg.to_radians();
-        (size / 2.0 + r * a.cos(), size / 2.0 + r * a.sin())
-    };
-    let (x0, y0) = pt(a0);
-    let (x1, y1) = pt(a0 + sweep);
-    let large = if sweep > 180.0 { 1 } else { 0 };
-    let d = format!("M{x0} {y0} A{r} {r} 0 {large} 1 {x1} {y1}");
-    let mut shape = Shape::new();
-    if value.is_some() {
-        shape = shape.stroke_svg(
-            &format!(
-                "M{} {} A{r} {r} 0 1 1 {} {} A{r} {r} 0 1 1 {} {}",
-                size / 2.0,
-                2.0,
-                size / 2.0,
-                size - 2.0,
-                size / 2.0,
-                2.0
-            ),
-            4.0,
-            rune::LineCap::Butt,
-            c(k.control_strong_stroke_color_default.with_opacity(0.0)),
-        );
+    let r = winui_controls::ProgressRing::new().size(size);
+    match value {
+        Some(v) => r.value(v * 100.0),
+        None => r,
     }
-    canvas_el(
-        shape.stroke_svg(
-            &d,
-            4.0,
-            rune::LineCap::Round,
-            c(k.accent_fill_color_default),
-        ),
-        size,
-    )
-}
-
-fn canvas_el(shape: Shape, size: f32) -> El {
-    rune::canvas(shape).size(size, size)
+    .view(t)
 }
 
 pub fn rating(t: &Theme, value: usize) -> El {
-    let k = t.tokens();
-    let mut r = row().gap(4.0).h(32.0).items_center();
-    for i in 0..5 {
-        r = r.child(if i < value {
-            icon(Symbol::StarFilled, 20.0, k.accent_fill_color_default)
-        } else {
-            icon(Symbol::Star, 20.0, k.text_fill_color_secondary)
-        });
-    }
-    r
+    winui_controls::RatingControl::new()
+        .value(value as f32)
+        .view(t)
 }
 
 pub fn expander(t: &Theme, title: &str, open: bool, content: El) -> El {
@@ -769,26 +464,10 @@ pub fn list_row(t: &Theme, label: &str, sub: Option<&str>, selected: bool) -> El
 }
 
 pub fn person(t: &Theme, name: &str, size: f32) -> El {
-    let k = t.tokens();
-    let initials: String = name
-        .split_whitespace()
-        .filter_map(|w| w.chars().next())
-        .take(2)
-        .collect();
-    el().size(size, size)
-        .radius(size / 2.0)
-        .fill(c(k.control_alt_fill_color_quarternary))
-        .center()
-        .border(1.0, c(k.card_stroke_color_default))
-        .child(
-            text(initials)
-                .font(font(if size >= 64.0 {
-                    t.type_ramp().subtitle
-                } else {
-                    t.type_ramp().caption.with_weight(600)
-                }))
-                .color(c(k.text_fill_color_primary)),
-        )
+    winui_controls::PersonPicture::new()
+        .display_name(name)
+        .size(size)
+        .view(t)
 }
 
 pub fn info_badge(t: &Theme, n: Option<u32>) -> El {

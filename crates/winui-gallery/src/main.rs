@@ -6,6 +6,7 @@
 
 #![forbid(unsafe_code)]
 
+mod apps;
 mod controls;
 mod fluent;
 mod pages;
@@ -29,10 +30,11 @@ pub enum Page {
     Colors,
     Type,
     Settings,
+    App(apps::App),
 }
 
 impl Page {
-    pub const ALL: [Page; 12] = [
+    pub const ALL: [Page; 19] = [
         Page::Home,
         Page::Buttons,
         Page::Input,
@@ -45,6 +47,13 @@ impl Page {
         Page::Colors,
         Page::Type,
         Page::Settings,
+        Page::App(apps::App::Settings),
+        Page::App(apps::App::Calculator),
+        Page::App(apps::App::Clock),
+        Page::App(apps::App::ClockSettings),
+        Page::App(apps::App::Store),
+        Page::App(apps::App::Snipping),
+        Page::App(apps::App::Terminal),
     ];
     pub fn id(self) -> &'static str {
         match self {
@@ -60,6 +69,7 @@ impl Page {
             Page::Colors => "styles-colors",
             Page::Type => "styles-type",
             Page::Settings => "settings",
+            Page::App(a) => a.id(),
         }
     }
     fn title(self) -> &'static str {
@@ -76,6 +86,7 @@ impl Page {
             Page::Colors => "Color",
             Page::Type => "Typography",
             Page::Settings => "Settings",
+            Page::App(a) => a.title(),
         }
     }
     fn nav_label(self) -> &'static str {
@@ -99,6 +110,7 @@ impl Page {
             Page::Colors => Symbol::Color,
             Page::Type => Symbol::TextFont,
             Page::Settings => Symbol::Settings,
+            Page::App(a) => a.icon(),
         }
     }
     pub fn from_id(id: &str) -> Option<Page> {
@@ -129,6 +141,8 @@ pub struct State {
     pub toggle: bool,
     pub slider: f32,
     pub search: String,
+    /// App-clone scenes render the clone as the whole window, without the gallery shell.
+    pub full_app: bool,
 }
 
 impl Default for State {
@@ -141,6 +155,7 @@ impl Default for State {
             toggle: true,
             slider: 0.5,
             search: String::new(),
+            full_app: false,
         }
     }
 }
@@ -182,6 +197,18 @@ const NAV_GROUPS: &[(Option<&str>, &[Page])] = &[
         ],
     ),
     (Some("Design"), &[Page::Icons, Page::Colors, Page::Type]),
+    (
+        Some("Apps"),
+        &[
+            Page::App(apps::App::Settings),
+            Page::App(apps::App::Calculator),
+            Page::App(apps::App::Clock),
+            Page::App(apps::App::ClockSettings),
+            Page::App(apps::App::Store),
+            Page::App(apps::App::Snipping),
+            Page::App(apps::App::Terminal),
+        ],
+    ),
 ];
 
 fn nav_item(s: &State, t: &Theme, p: Page) -> El {
@@ -339,6 +366,9 @@ fn view(s: &State, cx: &mut Cx<State>) -> El {
         s
     };
     let t = s.theme();
+    if let (Page::App(a), true) = (s.page, s.full_app) {
+        return a.window(&t);
+    }
     let k = t.tokens();
     let content = col()
         .w_full()
@@ -379,7 +409,11 @@ fn view(s: &State, cx: &mut Cx<State>) -> El {
 }
 
 macro_rules! scenes {
-    ($($id:literal => $p:expr),* $(,)?) => { &[$(($id, |s: &mut State| s.page = $p)),*] };
+    ($($id:literal => $p:expr),* $(,)?) => { &[$(($id, |s: &mut State| { s.page = $p; s.full_app = s.page.id() == $id && $id.starts_with("app-"); })),*] };
+}
+
+const fn app(a: apps::App) -> Page {
+    Page::App(a)
 }
 
 pub fn spec() -> AppSpec<State> {
@@ -388,6 +422,10 @@ pub fn spec() -> AppSpec<State> {
             "home" => Page::Home, "buttons" => Page::Buttons, "input" => Page::Input, "collections" => Page::Collections,
             "menus" => Page::Menus, "navigation" => Page::Navigation, "status" => Page::Status, "media" => Page::Media,
             "styles-icons" => Page::Icons, "styles-colors" => Page::Colors, "styles-type" => Page::Type, "settings" => Page::Settings,
+            "app-settings" => app(apps::App::Settings), "app-calculator" => app(apps::App::Calculator),
+            "app-clock" => app(apps::App::Clock), "app-clock-settings" => app(apps::App::ClockSettings),
+            "app-store" => app(apps::App::Store), "app-snipping" => app(apps::App::Snipping),
+            "app-terminal" => app(apps::App::Terminal),
         ],
         families: (fluent::families(), "ui-monospace"),
         min_size: Some((640.0, 480.0)),
@@ -395,8 +433,25 @@ pub fn spec() -> AppSpec<State> {
     }
 }
 
+/// App-clone scenes default to their reference screenshot's window size, so
+/// `--scene app-calculator --snap out.png` frames like `docs/reference/calculator.png`.
+fn argv() -> Vec<String> {
+    let mut args: Vec<String> = std::env::args().skip(1).collect();
+    let scene = args
+        .iter()
+        .position(|a| a == "--scene")
+        .and_then(|i| args.get(i + 1));
+    if let Some(a) = scene.and_then(|id| apps::App::from_id(id)) {
+        if !args.iter().any(|a| a == "--size") {
+            let (w, h) = a.size();
+            args.extend(["--size".into(), format!("{w}x{h}")]);
+        }
+    }
+    args
+}
+
 fn main() {
-    rune::run(spec());
+    rune::App::new(spec()).args(argv()).run();
 }
 
 #[cfg(test)]

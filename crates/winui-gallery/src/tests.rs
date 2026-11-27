@@ -59,3 +59,22 @@ fn settings_toggle_theme_and_accent() {
         Theme::dark().tokens().accent_fill_color_default
     );
 }
+
+#[test]
+fn app_scenes_render_the_clone_full_window() {
+    let s = spec();
+    for a in crate::apps::App::ALL {
+        let (_, set) = s.scenes.iter().find(|(id, _)| *id == a.id()).expect(a.id());
+        let mut st = State::default();
+        set(&mut st);
+        assert_eq!(st.page, Page::App(a));
+        assert!(st.full_app, "{}", a.id());
+        for mode in [ThemeMode::Light, ThemeMode::Dark] {
+            st.theme = Some(mode);
+            let _ = a.window(&st.theme());
+        }
+    }
+    let mut st = State::default();
+    (s.scenes.iter().find(|(id, _)| *id == "settings").unwrap().1)(&mut st);
+    assert!(!st.full_app);
+}
