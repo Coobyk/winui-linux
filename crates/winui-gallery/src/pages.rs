@@ -446,7 +446,12 @@ fn settings_page(s: &State, t: &Theme) -> El {
         .key("theme-toggle")
         .focusable(true)
         .on_press(move |s: &mut State| s.theme = Some(next));
-    let mut sw = row().gap(4.0);
+    let mut sw = row()
+        .gap(4.0)
+        .flex_wrap()
+        .justify_end()
+        .max_w(5.0 * 36.0)
+        .py(8.0);
     for (i, (name, col_)) in crate::ACCENTS.iter().enumerate() {
         let mut b = el()
             .size(32.0, 32.0)
