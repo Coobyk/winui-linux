@@ -189,12 +189,13 @@ impl ProgressBar {
 pub struct ProgressRing {
     value: Option<f32>,
     size: f32,
+    stroke: Option<f32>,
     state: ProgressState,
 }
 
 impl Default for ProgressRing {
     fn default() -> Self {
-        ProgressRing { value: None, size: 32.0, state: ProgressState::Running }
+        ProgressRing { value: None, size: 32.0, stroke: None, state: ProgressState::Running }
     }
 }
 
@@ -210,6 +211,12 @@ impl ProgressRing {
         self.size = s;
         self
     }
+    /// Ring thickness; defaults to `size / 8` (4px at the default 32px, `ProgressRing`'s
+    /// template stroke), so large rings such as Clock's timer dials can stay thin.
+    pub fn stroke(mut self, w: f32) -> Self {
+        self.stroke = Some(w);
+        self
+    }
     pub fn state(mut self, s: ProgressState) -> Self {
         self.state = s;
         self
@@ -222,7 +229,7 @@ impl ProgressRing {
             ProgressState::Error => k.system_fill_color_critical,
         };
         let s = self.size;
-        let stroke = (s / 8.0).max(2.0);
+        let stroke = self.stroke.unwrap_or((s / 8.0).max(2.0));
         let (start, sweep) = match self.value {
             Some(v) => (-PI / 2.0, TAU * v / 100.0),
             None => (-PI / 2.0 + PI / 4.0, PI / 2.0),
