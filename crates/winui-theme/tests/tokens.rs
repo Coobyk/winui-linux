@@ -169,6 +169,23 @@ fn derived_ramp_is_ordered_and_in_gamut() {
 }
 
 #[test]
+fn derived_accent_buttons_keep_text_contrast() {
+    for hex in [
+        "#FFB900", "#FFFF00", "#00B7C3", "#000000", "#1A1A1A", "#FFFFFF", "#E74856", "#881798",
+    ] {
+        let accent = Color::from_hex(hex).unwrap();
+        for theme in [Theme::light(), Theme::dark()] {
+            let t = theme.with_accent(accent);
+            let k = t.tokens();
+            let ratio = k
+                .accent_fill_color_default
+                .contrast_ratio(k.text_on_accent_fill_color_primary);
+            assert!(ratio >= 4.5, "{hex} {:?}: {ratio}", theme.mode());
+        }
+    }
+}
+
+#[test]
 fn type_ramp() {
     let r = *Theme::light().type_ramp();
     let sizes: Vec<f32> = [

@@ -69,14 +69,20 @@ impl AccentRamp {
             let h = a[2] + hue_weight * wrap(r[2] - base[2]);
             from_lch_in_gamut(l, c, h)
         };
+        // Light mode puts white text on Dark1, dark mode black text on Light2
+        // (`TextOnAccentFillColorPrimary`); keep both legible (WCAG AA 4.5:1).
+        let dark1 = with_contrast(step(d.dark1), Color::rgb(255, 255, 255), true);
+        let dark2 = not_lighter_than(step(d.dark2), dark1);
+        let light2 = with_contrast(step(d.light2), Color::rgb(0, 0, 0), false);
+        let light3 = not_darker_than(step(d.light3), light2);
         Self {
-            dark3: step(d.dark3),
-            dark2: step(d.dark2),
-            dark1: step(d.dark1),
+            dark3: not_lighter_than(step(d.dark3), dark2),
+            dark2,
+            dark1,
             base: accent,
             light1: step(d.light1),
-            light2: step(d.light2),
-            light3: step(d.light3),
+            light2,
+            light3,
         }
     }
 
@@ -97,6 +103,42 @@ impl AccentRamp {
 impl Default for AccentRamp {
     fn default() -> Self {
         Self::DEFAULT
+    }
+}
+
+const MIN_TEXT_CONTRAST: f32 = 4.5;
+
+/// Move `c` in OKLCH lightness (darker or lighter) just far enough to reach
+/// [`MIN_TEXT_CONTRAST`] against `text`.
+fn with_contrast(c: Color, text: Color, darker: bool) -> Color {
+    if c.contrast_ratio(text) >= MIN_TEXT_CONTRAST {
+        return c;
+    }
+    let [l, ch, h] = lch(c);
+    let (mut lo, mut hi) = if darker { (0.0, l) } else { (l, 1.0) };
+    for _ in 0..24 {
+        let mid = (lo + hi) / 2.0;
+        let ok = from_lch_in_gamut(mid, ch, h).contrast_ratio(text) >= MIN_TEXT_CONTRAST;
+        if ok == darker { lo = mid } else { hi = mid }
+    }
+    from_lch_in_gamut(if darker { lo } else { hi }, ch, h)
+}
+
+fn not_lighter_than(c: Color, limit: Color) -> Color {
+    let ([l, ch, h], max) = (lch(c), lch(limit)[0]);
+    if l > max {
+        from_lch_in_gamut(max, ch, h)
+    } else {
+        c
+    }
+}
+
+fn not_darker_than(c: Color, limit: Color) -> Color {
+    let ([l, ch, h], min) = (lch(c), lch(limit)[0]);
+    if l < min {
+        from_lch_in_gamut(min, ch, h)
+    } else {
+        c
     }
 }
 
