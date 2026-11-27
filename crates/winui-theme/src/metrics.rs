@@ -159,12 +159,12 @@ pub mod sizes {
     pub const FLYOUT_CONTENT_PADDING: Thickness = Thickness::new(16.0, 15.0, 16.0, 17.0);
     pub const FLYOUT_MIN_WIDTH: f32 = 96.0;
     pub const FLYOUT_MAX_WIDTH: f32 = 456.0;
-    pub const TOOLTIP_PADDING: Thickness = Thickness::new(8.0, 5.0, 8.0, 7.0);
+    pub const TOOLTIP_PADDING: Thickness = Thickness::new(9.0, 6.0, 9.0, 8.0);
     pub const CONTENT_DIALOG_MIN_WIDTH: f32 = 320.0;
     pub const CONTENT_DIALOG_MAX_WIDTH: f32 = 548.0;
     pub const CONTENT_DIALOG_MIN_HEIGHT: f32 = 184.0;
     pub const CONTENT_DIALOG_MAX_HEIGHT: f32 = 756.0;
-    pub const CONTENT_DIALOG_PADDING: Thickness = Thickness::new(24.0, 18.0, 24.0, 24.0);
+    pub const CONTENT_DIALOG_PADDING: Thickness = Thickness::uniform(24.0);
     /// `PaneOverlayShadowDepth` / `TabViewShadowDepth`.
     pub const OVERLAY_SHADOW_DEPTH: f32 = 16.0;
 }
