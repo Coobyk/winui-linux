@@ -438,7 +438,7 @@ fn ref_size(args: &[String]) -> Option<(f32, f32)> {
 
 fn main() {
     let mut spec = spec();
-    if let Some(size) = ref_size(&std::env::args().collect::<Vec<_>>()) {
+    if let Some(size) = ref_size(&std::env::args_os().map(|a| a.to_string_lossy().into_owned()).collect::<Vec<_>>()) {
         spec.size = size;
     }
     rune::run(spec);
