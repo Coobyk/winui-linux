@@ -142,18 +142,56 @@ fn derived_ramp_close_to_default_for_near_default() {
     }
 }
 
+/// Ordering is checked on hex-exported colours: that is what downstream sees.
+fn assert_ordered(name: &str, ramp: &AccentRamp) {
+    let ls: Vec<f32> = ramp
+        .steps()
+        .iter()
+        .map(|c| Color::from_hex(&c.to_string()).unwrap().to_oklab()[0])
+        .collect();
+    for w in ls.windows(2) {
+        assert!(
+            w[0] <= w[1] + 1e-6,
+            "{name}: lightness not monotonic {ls:?}"
+        );
+    }
+}
+
+fn text_contrast_ok(name: &str, accent: Color) {
+    for theme in [Theme::light(), Theme::dark()] {
+        let t = theme.with_accent(accent);
+        let k = t.tokens();
+        let fill = Color::from_hex(&k.accent_fill_color_default.to_string()).unwrap();
+        let ratio = fill.contrast_ratio(k.text_on_accent_fill_color_primary);
+        assert!(ratio >= 4.5, "{name} {:?}: {ratio}", theme.mode());
+    }
+}
+
+#[test]
+fn derived_ramps_sweep_srgb_cube() {
+    let levels = [0u8, 0x2D, 0x55, 0x8C, 0xAA, 0xDC, 0xFF];
+    for r in levels {
+        for g in levels {
+            for b in levels {
+                let accent = Color::rgb(r, g, b);
+                let name = accent.to_string();
+                assert_ordered(&name, &AccentRamp::derive(accent));
+                text_contrast_ok(&name, accent);
+            }
+        }
+    }
+}
+
 #[test]
 fn derived_ramp_is_ordered_and_in_gamut() {
     for hex in [
         "#881798", "#E74856", "#10893E", "#FFB900", "#767676", "#000000", "#FFFFFF", "#00B7C3",
+        "#2D053C", "#008CDC",
     ] {
         let accent = Color::from_hex(hex).unwrap();
         let ramp = AccentRamp::derive(accent);
         assert!(ramp.base.eq_rgba8(accent));
-        let ls: Vec<f32> = ramp.steps().iter().map(|c| c.to_oklab()[0]).collect();
-        for w in ls.windows(2) {
-            assert!(w[0] <= w[1] + 1e-3, "{hex}: lightness not monotonic {ls:?}");
-        }
+        assert_ordered(hex, &ramp);
         for c in ramp.steps() {
             assert!(c.in_gamut() && c.a == 1.0, "{hex}: {c}");
         }
@@ -165,6 +203,24 @@ fn derived_ramp_is_ordered_and_in_gamut() {
         );
         let t = Theme::dark().with_accent(accent);
         assert_eq!(t.tokens().accent_fill_color_default, ramp.light2);
+    }
+}
+
+#[test]
+fn derived_accent_buttons_keep_text_contrast() {
+    for hex in [
+        "#FFB900", "#FFFF00", "#00B7C3", "#000000", "#1A1A1A", "#FFFFFF", "#E74856", "#881798",
+        "#008CDC",
+    ] {
+        let accent = Color::from_hex(hex).unwrap();
+        for theme in [Theme::light(), Theme::dark()] {
+            let t = theme.with_accent(accent);
+            let k = t.tokens();
+            // Measure what downstream sees after hex export.
+            let fill = Color::from_hex(&k.accent_fill_color_default.to_string()).unwrap();
+            let ratio = fill.contrast_ratio(k.text_on_accent_fill_color_primary);
+            assert!(ratio >= 4.5, "{hex} {:?}: {ratio}", theme.mode());
+        }
     }
 }
 
