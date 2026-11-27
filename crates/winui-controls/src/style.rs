@@ -315,13 +315,19 @@ pub fn flyout_surface(t: &Theme) -> El {
         .shadow(8.0, 16.0, rune::Color::BLACK.alpha(if t.is_dark() { 0.26 } else { 0.14 }))
 }
 
-/// A card surface (`CardBackgroundFillColorDefault` + `CardStrokeColorDefault`).
+/// A card surface (`CardBackgroundFillColorDefault` + `CardStrokeColorDefault`, 8px corners).
 pub fn card(t: &Theme) -> El {
-    let k = t.tokens();
-    rune::col()
-        .fill(rc(k.card_background_fill_color_default))
-        .border(1.0, rc(k.card_stroke_color_default))
-        .radius(R)
+    surface(rune::col(), t.tokens().card_background_fill_color_default, t.tokens().card_stroke_color_default, [R_OVERLAY; 4])
+}
+
+/// Paints `e` with `fill` inside a 1px `stroke` ring (`BackgroundSizing="InnerBorderEdge"`):
+/// the fill is an out-of-flow layer inset 1px so the translucent stroke composites over the
+/// backdrop, not over the fill. Add `e`'s content after calling this.
+pub fn surface(e: El, fill: theme::Color, stroke: theme::Color, corners: [f32; 4]) -> El {
+    let i = Some(INSET);
+    e.corners(corners)
+        .child(rune::el().pin(i, i, i, i).corners(inner(corners)).fill(rc(fill)))
+        .child(ring(corners, 0.0, stroke, stroke, false, 1.0))
 }
 
 /// Rest and hover fills as two stacked layers: the hover one shows while the nearest
