@@ -109,6 +109,8 @@ pub mod fonts {
     /// Metric-compatible fallbacks for Linux, in preference order.
     pub const FALLBACKS: &[&str] = &[
         "Segoe UI",
+        // Microsoft's open-source, metric-compatible Segoe UI fallback (OFL).
+        "Selawik",
         "Inter",
         "Noto Sans",
         "DejaVu Sans",

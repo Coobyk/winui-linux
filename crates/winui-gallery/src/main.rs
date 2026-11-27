@@ -382,6 +382,14 @@ macro_rules! scenes {
     ($($id:literal => $p:expr),* $(,)?) => { &[$(($id, |s: &mut State| s.page = $p)),*] };
 }
 
+/// Selawik, the metric-compatible open Segoe UI fallback, in the four weights the type ramp uses.
+const FONTS: &[&[u8]] = &[
+    include_bytes!("../assets/Selawik-Regular.ttf"),
+    include_bytes!("../assets/Selawik-SemiBold.ttf"),
+    include_bytes!("../assets/Selawik-Bold.ttf"),
+    include_bytes!("../assets/Selawik-Light.ttf"),
+];
+
 pub fn spec() -> AppSpec<State> {
     AppSpec {
         scenes: scenes![
@@ -389,6 +397,7 @@ pub fn spec() -> AppSpec<State> {
             "menus" => Page::Menus, "navigation" => Page::Navigation, "status" => Page::Status, "media" => Page::Media,
             "styles-icons" => Page::Icons, "styles-colors" => Page::Colors, "styles-type" => Page::Type, "settings" => Page::Settings,
         ],
+        fonts: FONTS,
         families: (fluent::families(), "ui-monospace"),
         min_size: Some((640.0, 480.0)),
         ..AppSpec::new("WinUI 3 Gallery", (1280.0, 800.0), State::default, view)
