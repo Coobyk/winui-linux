@@ -32,8 +32,11 @@ def fetch(asset, style):
 def paths_of(svg):
     if re.search(r"<(circle|rect|ellipse|line|polygon|polyline|g|use)\b", svg) or "transform" in svg:
         raise ValueError("unsupported SVG element")
-    ds = re.findall(r'<path\b[^>]*\bd="([^"]+)"', svg)
-    rules = set(re.findall(r'fill-rule="([^"]+)"', svg))
+    if "opacity" in svg:
+        raise ValueError("opacity is not representable in a single path")
+    tags = re.findall(r"<path\b[^>]*>", svg)
+    ds = [re.search(r'\bd="([^"]+)"', t).group(1) for t in tags]
+    rules = {(re.search(r'fill-rule="([^"]+)"', t) or [None, "nonzero"])[1] for t in tags}
     return ds, rules
 
 def render(d_list, rule):
@@ -60,8 +63,8 @@ def main():
         svg = fetch(asset, style)
         ds, rules = paths_of(svg)
         assert ds, asset
-        orig_rule = rules.pop() if len(rules) == 1 else "nonzero"
-        assert not rules, f"{asset}: mixed fill rules"
+        assert len(rules) == 1, f"{asset}: mixed fill rules"
+        orig_rule = rules.pop()
         reference = render(ds, orig_rule)
         merged = " ".join(ds)
         if differs(render([merged], "evenodd"), reference) == 0:
