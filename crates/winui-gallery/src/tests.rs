@@ -59,3 +59,25 @@ fn settings_toggle_theme_and_accent() {
         Theme::dark().tokens().accent_fill_color_default
     );
 }
+
+#[test]
+fn reference_scenes_register_and_build() {
+    let s = spec();
+    let mut rt = rt(true);
+    for r in refs::Ref::ALL {
+        assert!(s.scenes.iter().any(|(id, _)| *id == r.id()), "{}", r.id());
+        assert_eq!(refs::Ref::from_id(r.id()), Some(r));
+        rt.update(move |s, _| s.reference = Some(r));
+        rt.frame(0.0);
+        assert!(!rt.elements().is_empty(), "{}", r.id());
+    }
+}
+
+#[test]
+fn ref_size_follows_last_scene_and_yields_to_size() {
+    let a = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+    assert_eq!(ref_size(&a(&["--scene", "ref-calculator"])), Some(refs::Ref::Calculator.size()));
+    assert_eq!(ref_size(&a(&["--scene", "ref-calculator", "--scene=ref-terminal"])), Some(refs::Ref::Terminal.size()));
+    assert_eq!(ref_size(&a(&["--scene", "ref-terminal", "--scene", "buttons"])), None);
+    assert_eq!(ref_size(&a(&["--scene", "ref-terminal", "--size", "800x600"])), None);
+}
