@@ -84,10 +84,8 @@ impl Expander {
             .pr(8.0)
             .gap(16.0)
             .center_y()
-            .hover_group()
-            .fill(rc(k.card_background_fill_color_default))
-            .border(1.0, rc(k.card_stroke_color_default))
-            .corners(if self.expanded { [R, R, 0.0, 0.0] } else { [R; 4] });
+            .hover_group();
+        head = style::surface(head, k.card_background_fill_color_default, k.card_stroke_color_default, if self.expanded { [R, R, 0.0, 0.0] } else { [R; 4] });
         if let Some(i) = self.icon {
             head = head.child(glyph(i, 16.0, k.text_fill_color_primary));
         }

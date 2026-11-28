@@ -39,8 +39,14 @@ pub fn label(s: impl Into<String>, t: &Theme, color: theme::Color) -> El {
 /// WinUI's system focus visual: a 2px `FocusStrokeColorOuter` ring outside the control, drawn
 /// for keyboard focus only (`UseSystemFocusVisuals`).
 pub fn focus_rect(e: El, t: &Theme, radius: f32) -> El {
+    focus_rect_inset(e, t, radius, 0.0)
+}
+
+/// [`focus_rect`] for an element `inset` points inside the control's bounds (a face inside its
+/// elevation ring): the ring still lands 1-3px outside the control, `FocusVisualMargin="-3"`.
+pub fn focus_rect_inset(e: El, t: &Theme, radius: f32, inset: f32) -> El {
     e.focusable(true)
-        .focus_ring(2.0, 1.0, rc(t.tokens().focus_stroke_color_outer))
+        .focus_ring(2.0, 1.0 + inset, rc(t.tokens().focus_stroke_color_outer))
         .focus_ring_radius(radius + 3.0)
 }
 
@@ -60,21 +66,65 @@ impl StateSet {
 }
 
 /// The control's elevation border (`ControlElevationBorderBrush` /
-/// `AccentControlElevationBorderBrush`) sampled at the 32px control height, plus the solid
-/// `*BorderBrushPressed` and `*BorderBrushDisabled` strokes.
+/// `AccentControlElevationBorderBrush`) plus the solid `*BorderBrushPressed` and
+/// `*BorderBrushDisabled` strokes.
+///
+/// The brushes are 3px absolute gradients: the outermost device row on one edge (top in dark,
+/// bottom in light and on accent, where the brush is flipped) is the 0.33 stop
+/// (`ControlStrokeColorSecondary`) and everything past 3px is the 1.0 stop
+/// (`ControlStrokeColorDefault`), so on a 1px border only that one edge differs. `edge` is that
+/// colour, `body` the rest of the ring, `edge_bottom` which side it is on.
 #[derive(Clone, Copy, Debug)]
 pub struct Elevation {
     pub top: theme::Color,
     pub bottom: theme::Color,
     pub pressed: theme::Color,
     pub flat: theme::Color,
+    pub edge: theme::Color,
+    pub body: theme::Color,
+    pub edge_bottom: bool,
 }
 
 impl Elevation {
     fn new(g: &theme::LinearGradient, pressed: theme::Color, disabled: theme::Color) -> Self {
         let h = theme::sizes::CONTROL_HEIGHT;
-        Elevation { top: g.top(h), bottom: g.bottom(h), pressed, flat: disabled }
+        let edge_bottom = g.flip_y;
+        let (edge, body) = if edge_bottom { (g.bottom(h), g.top(h)) } else { (g.top(h), g.bottom(h)) };
+        Elevation { top: g.top(h), bottom: g.bottom(h), pressed, flat: disabled, edge, body, edge_bottom }
     }
+
+    /// The 1px ring as an out-of-flow child of a face inset [`INSET`] inside it, so the face's
+    /// fill stops at the ring's inner edge (`BackgroundSizing="InnerBorderEdge"`) and the
+    /// translucent stroke composites over what is behind the control, not over its fill.
+    pub fn ring(&self, enabled: bool, corners: [f32; 4]) -> El {
+        if enabled {
+            ring(corners, -INSET, self.body, self.edge, self.edge_bottom, 1.0)
+        } else {
+            ring(corners, -INSET, self.flat, self.flat, false, 1.0)
+        }
+    }
+}
+
+/// A 1px out-of-flow ring pinned `at` points inside its parent's padding box (negative: outside),
+/// `body` on three sides and `edge` (`edge_w` wide) on the top or bottom, the way an absolute
+/// 2-3px WinUI elevation gradient lands on a 1px border.
+pub fn ring(corners: [f32; 4], at: f32, body: theme::Color, edge: theme::Color, edge_bottom: bool, edge_w: f32) -> El {
+    let pinned = || rune::el().pin(Some(0.0), Some(0.0), Some(0.0), Some(0.0)).corners(corners);
+    let (edge_sides, body_sides) =
+        if edge_bottom { ([0.0, 0.0, edge_w, 0.0], [1.0, 1.0, 0.0, 1.0]) } else { ([edge_w, 0.0, 0.0, 0.0], [0.0, 1.0, 1.0, 1.0]) };
+    rune::el()
+        .pin(Some(at), Some(at), Some(at), Some(at))
+        .corners(corners)
+        .child(pinned().border_sides(body_sides, rc(body)))
+        .child(pinned().border_sides(edge_sides, rc(edge)))
+}
+
+/// How far a bordered face sits inside its control bounds: the 1px elevation ring.
+pub const INSET: f32 = 1.0;
+
+/// Shrinks each corner radius by [`INSET`] for a face inside its ring.
+pub fn inner(corners: [f32; 4]) -> [f32; 4] {
+    corners.map(|r| (r - INSET).max(0.0))
 }
 
 /// Fill + stroke + foreground recipe for a WinUI button-like surface.
@@ -146,22 +196,35 @@ impl Recipe {
     }
 
     /// Paints `e` as this recipe: rest fill and border, plus hover/press fills and the press
-    /// foreground when `enabled`; the disabled set otherwise.
+    /// foreground when `enabled`; the disabled set otherwise. A bordered recipe draws its ring
+    /// [`INSET`] outside `e` (see [`Elevation::ring`]): size `e` to the control minus `2 * INSET`.
     pub fn paint(&self, e: El, enabled: bool) -> El {
+        self.paint_corners(e, enabled, [R; 4])
+    }
+
+    /// [`Self::paint`] with per-corner control radii (split buttons, grouped parts).
+    pub fn paint_corners(&self, e: El, enabled: bool, corners: [f32; 4]) -> El {
         let mut e = e.fill(rc(self.fill.pick(enabled)));
         if let Some(b) = self.border {
-            e = if enabled { e.border_gradient(1.0, rc(b.top), rc(b.bottom)) } else { e.border(1.0, rc(b.flat)) };
+            e = e.mx(INSET).my(INSET).corners(inner(corners)).child(b.ring(enabled, corners));
         }
         if enabled {
             e = e
                 .hover_fill(rc(self.fill.hover))
                 .press_fill(rc(self.fill.pressed))
                 .press_color(rc(self.fg.pressed));
-            if let Some(b) = self.border {
-                e = e.press_border(rc(b.pressed));
-            }
         }
         e
+    }
+
+    /// Fills only (no ring), for one part of a control whose ring is drawn by its group.
+    pub fn paint_fill(&self, e: El, enabled: bool) -> El {
+        let e = e.fill(rc(self.fill.pick(enabled)));
+        if enabled {
+            e.hover_fill(rc(self.fill.hover)).press_fill(rc(self.fill.pressed)).press_color(rc(self.fg.pressed))
+        } else {
+            e
+        }
     }
 
     pub fn fg(&self, enabled: bool) -> theme::Color {
@@ -252,13 +315,19 @@ pub fn flyout_surface(t: &Theme) -> El {
         .shadow(8.0, 16.0, rune::Color::BLACK.alpha(if t.is_dark() { 0.26 } else { 0.14 }))
 }
 
-/// A card surface (`CardBackgroundFillColorDefault` + `CardStrokeColorDefault`).
+/// A card surface (`CardBackgroundFillColorDefault` + `CardStrokeColorDefault`, 8px corners).
 pub fn card(t: &Theme) -> El {
-    let k = t.tokens();
-    rune::col()
-        .fill(rc(k.card_background_fill_color_default))
-        .border(1.0, rc(k.card_stroke_color_default))
-        .radius(R)
+    surface(rune::col(), t.tokens().card_background_fill_color_default, t.tokens().card_stroke_color_default, [R_OVERLAY; 4])
+}
+
+/// Paints `e` with `fill` inside a 1px `stroke` ring (`BackgroundSizing="InnerBorderEdge"`):
+/// the fill is an out-of-flow layer inset 1px so the translucent stroke composites over the
+/// backdrop, not over the fill. Add `e`'s content after calling this.
+pub fn surface(e: El, fill: theme::Color, stroke: theme::Color, corners: [f32; 4]) -> El {
+    let i = Some(INSET);
+    e.corners(corners)
+        .child(rune::el().pin(i, i, i, i).corners(inner(corners)).fill(rc(fill)))
+        .child(ring(corners, 0.0, stroke, stroke, false, 1.0))
 }
 
 /// Rest and hover fills as two stacked layers: the hover one shows while the nearest

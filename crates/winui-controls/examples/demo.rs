@@ -41,7 +41,7 @@ macro_rules! scenes {
 
 const SCENES: &[(&str, fn(&mut State))] = scenes![
     "buttons", "selection", "slider", "colorpicker", "text", "menus", "navigation", "tabview", "infobar", "progress",
-    "tooltip", "expander", "listview", "people",
+    "tooltip", "expander", "listview", "settings", "people",
 ];
 
 fn init() -> State {
@@ -252,6 +252,17 @@ fn listview(s: &State, t: &Theme) -> El {
     ]).selected(s.list).width(360.0).on_select(|s: &mut State, i| s.list = Some(i)).view(t))
 }
 
+fn settings(s: &State, t: &Theme) -> El {
+    col().gap(4.0).max_w(880.0)
+        .child(SettingsCard::new("Display").description("Monitors, brightness, night light, display profile").icon(Symbol::Desktop).clickable(true).view(t))
+        .child(SettingsCard::new("Sound").description("Volume levels, output, input, sound devices").icon(Symbol::Volume).clickable(true).view(t))
+        .child(SettingsCard::new("Notifications").description("Alerts from apps and system").icon(Symbol::Alert)
+            .content(ToggleSwitch::new().on(s.switch).on_toggle(|s: &mut State, v| s.switch = v).view(t)).view(t))
+        .child(SettingsCard::new("Power & battery").description("Sleep, battery usage, battery saver").icon(Symbol::Battery).clickable(true).view(t))
+        .child(SettingsCard::new("Storage").description("Storage space, drives, configuration rules").icon(Symbol::Desktop).enabled(false)
+            .content(ToggleSwitch::new().on(true).enabled(false).view(t)).view(t))
+}
+
 fn people(t: &Theme) -> El {
     let mut icons = row().gap(16.0).flex_wrap().w(640.0);
     for sym in Symbol::ALL {
@@ -287,6 +298,7 @@ fn view(s: &State, cx: &mut Cx<State>) -> El {
         "tooltip" => tooltip(&t),
         "expander" => expander(s, &t),
         "listview" => listview(s, &t),
+        "settings" => settings(s, &t),
         "people" => people(&t),
         _ => buttons(s, &t),
     };

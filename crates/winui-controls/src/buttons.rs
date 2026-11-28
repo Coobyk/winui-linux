@@ -4,13 +4,14 @@ use rune::{col, row, El, Phase};
 
 use crate::shim::icons::Symbol;
 use crate::shim::theme::{sizes, Theme};
-use crate::style::{self, focus_rect, glyph, rc, Hook, Recipe, R};
+use crate::style::{self, focus_rect, focus_rect_inset, glyph, rc, Hook, Recipe, INSET, R};
 use crate::{impl_control, menus::MenuFlyout};
 
-/// Face of a button: 32px tall, 11px side padding, 8px icon gap, 4px corners, focus rect.
+/// Face of a button: 32px tall with its ring (`ButtonPadding` 11,5,11,6 less the 1px border),
+/// 8px icon gap, 4px corners, focus rect.
 fn face(t: &Theme, recipe: Recipe, enabled: bool, icon: Option<Symbol>, label: &str, trailing: Option<El>) -> El {
     let fg = recipe.fg(enabled);
-    let mut r = row().h(sizes::CONTROL_HEIGHT).px(11.0).pb(1.0).gap(8.0).center().radius(R);
+    let mut r = row().h(sizes::CONTROL_HEIGHT - 2.0 * INSET).px(11.0 - INSET).pb(1.0).gap(8.0).center();
     if let Some(i) = icon {
         r = r.child(glyph(i, 16.0, fg));
     }
@@ -21,7 +22,7 @@ fn face(t: &Theme, recipe: Recipe, enabled: bool, icon: Option<Symbol>, label: &
         r = r.child(tr);
     }
     let r = recipe.paint(r, enabled).role("button").label(label.to_owned()).disabled(!enabled);
-    if enabled { focus_rect(r, t, R) } else { r }
+    if enabled { focus_rect_inset(r, t, R, INSET) } else { r }
 }
 
 fn keyed(e: El, key: &Option<String>) -> El {
@@ -76,7 +77,7 @@ impl Button {
         let recipe = if self.accent { Recipe::accent(k) } else { Recipe::standard(k) };
         let mut e = face(t, recipe, self.enabled, self.icon, &self.label, None);
         if let Some(w) = self.width {
-            e = e.w(w);
+            e = e.w(w - 2.0 * INSET);
         }
         if self.enabled {
             e = self.press.attach(e, ());
@@ -271,7 +272,7 @@ impl DropDownButton {
     pub fn view(&self, t: &Theme) -> El {
         let recipe = Recipe::standard(t.tokens());
         let chevron = glyph(Symbol::ChevronDown, 12.0, recipe.fg(self.enabled));
-        let mut e = face(t, recipe, self.enabled, self.icon, &self.label, Some(chevron)).pr(8.0).expanded(self.open).key(self.key.clone());
+        let mut e = face(t, recipe, self.enabled, self.icon, &self.label, Some(chevron)).pr(8.0 - INSET).expanded(self.open).key(self.key.clone());
         if self.enabled {
             e = self.toggle.attach(e, !self.open);
         }
@@ -354,22 +355,18 @@ impl SplitButton {
         let recipe = if self.accent { Recipe::accent(k) } else { Recipe::standard(k) };
         let fg = recipe.fg(self.enabled);
         let part = |e: El| {
-            let e = e.h(sizes::CONTROL_HEIGHT).center().fill(rc(recipe.fill.pick(self.enabled)));
-            if self.enabled {
-                let e = e.hover_fill(rc(recipe.fill.hover)).press_fill(rc(recipe.fill.pressed)).press_color(rc(recipe.fg.pressed));
-                focus_rect(e, t, R)
-            } else {
-                e
-            }
+            let e = recipe.paint_fill(e.h(sizes::CONTROL_HEIGHT - 2.0 * INSET).center(), self.enabled);
+            if self.enabled { focus_rect_inset(e, t, R, INSET) } else { e }
         };
-        let mut primary = row().px(11.0).pb(1.0).gap(8.0);
+        let mut primary = row().px(11.0 - INSET).pb(1.0).gap(8.0);
         if let Some(i) = self.icon {
             primary = primary.child(glyph(i, 16.0, fg));
         }
         primary = primary.child(rune::text(self.label.clone()).font(style::body(t)).color(rc(fg)));
-        let mut primary = part(primary).corners([R, 0.0, 0.0, R]).role("button").label(self.label.clone()).key(format!("{}:primary", self.key));
-        let mut secondary = part(row().w(34.0).child(glyph(Symbol::ChevronDown, 12.0, fg)))
-            .corners([0.0, R, R, 0.0])
+        let inner = style::inner([R; 4]);
+        let mut primary = part(primary).corners([inner[0], 0.0, 0.0, inner[3]]).role("button").label(self.label.clone()).key(format!("{}:primary", self.key));
+        let mut secondary = part(row().w(34.0 - INSET).child(glyph(Symbol::ChevronDown, 12.0, fg)))
+            .corners([0.0, inner[1], inner[2], 0.0])
             .role("button")
             .label("More options")
             .expanded(self.open)
@@ -378,18 +375,22 @@ impl SplitButton {
             primary = self.press.attach(primary, ());
             secondary = self.toggle.attach(secondary, !self.open);
         }
-        let divider = rune::el().w(1.0).h(sizes::CONTROL_HEIGHT).fill(rc(if self.accent {
+        // SplitButton's divider: `SplitButtonBorderBrushDivider` (`ControlStrokeColorDefault`,
+        // on accent `ControlStrokeColorOnAccentDefault`), 1px wide, inset from the ring.
+        let divider = rune::el().w(1.0).h(sizes::CONTROL_HEIGHT - 2.0 * INSET).fill(rc(if self.accent {
             k.control_stroke_color_on_accent_default
         } else {
             k.control_stroke_color_default
         }));
         let border = recipe.border.expect("button recipes have borders");
-        let group = row().radius(R).key(self.key.clone()).child(primary).child(divider).child(secondary);
-        let group = if self.enabled {
-            group.border_gradient(1.0, rc(border.top), rc(border.bottom))
-        } else {
-            group.border(1.0, rc(border.flat))
-        };
+        let group = row()
+            .mx(INSET)
+            .my(INSET)
+            .key(self.key.clone())
+            .child(primary)
+            .child(divider)
+            .child(secondary)
+            .child(border.ring(self.enabled, [R; 4]));
         with_flyout(group.disabled(!self.enabled), t, self.open, self.menu.as_ref(), &self.key)
     }
 }

@@ -73,3 +73,31 @@ Controls use `winui-theme` and `winui-icons` from `main`, through the re-exports
   setting `open(false)` (rune-kit's `scrim` works for this).
 - Focus and keyboard: Rune handles Tab focus and Space/Enter to press. There is no arrow-key
   roving inside RadioButtons/ListView/NavigationView, and no type-ahead in ComboBox.
+
+## Visual fidelity notes
+
+Values come from `microsoft/microsoft-ui-xaml` theme resources (`Common_themeresources_any.xaml`,
+`Button_themeresources.xaml`, `TextBox_themeresources.xaml`, `ToggleSwitch_themeresources.xaml`,
+`Expander_themeresources.xaml`) and the Windows Community Toolkit `SettingsCard`, checked against
+`docs/reference/*.png` with `--snap`.
+
+- Bordered faces (buttons, ComboBox, TextBox, cards, Expander headers, `SettingsCard`) fill
+  *inside* a 1px ring (`BackgroundSizing="InnerBorderEdge"`), so translucent strokes composite
+  over the page: a dark card on `#202020` reads 29 / 43, as in the Settings screenshot.
+- `ControlElevationBorderBrush` and `TextControlElevationBorderBrush` are absolute 3px / 2px
+  gradients, so only one device row differs: the top row in dark (light: the bottom), the bottom
+  row on accent; TextBox gets a 1px `ControlStrongStrokeColorDefault` bottom, 2px accent focused.
+
+Deltas not closed:
+
+- Pressed rings: WinUI swaps the border to `ControlStrokeColorDefault` (accent: transparent) while
+  pressed. The ring is a child layer and Rune's press states only restyle the pressed element's
+  own fill/border/text, so pressed faces keep the rest ring (a one-row, ~2% difference).
+- `SettingsCard` pressed background (`ControlFillColorTertiary`) is not drawn: its fill is a
+  layer inside the ring, and Rune exposes hover (not press) to group children.
+- The focus visual draws the 2px outer stroke only; WinUI's 1px `FocusStrokeColorInner` between
+  the stroke and the control has no second-ring API in Rune.
+- Text uses Inter (Segoe UI Variable can't be redistributed): same ramp sizes, weights and line
+  heights, but slightly wider glyphs and no optical-size axis.
+- Card and window backgrounds are solid; Mica/Acrylic come from `winui-materials`, which this
+  crate does not use yet.

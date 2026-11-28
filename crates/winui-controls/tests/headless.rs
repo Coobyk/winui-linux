@@ -67,7 +67,8 @@ fn rect(rt: &rune::Runtime<S>, key: &str) -> [f32; 4] {
 fn button_is_32_tall_and_presses() {
     let mut rt = rt();
     rt.frame(0.0);
-    assert_eq!(rect(&rt, "go")[3], 32.0);
+    // The face sits inside its 1px elevation ring (a margin), so the control is 32 tall.
+    assert_eq!(rect(&rt, "go")[3] + 2.0 * winui_controls::style::INSET, 32.0);
     click(&mut rt, "go");
     click(&mut rt, "off");
     rt.update(|s, _| assert_eq!(s.presses, 1));
