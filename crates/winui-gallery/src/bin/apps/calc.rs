@@ -77,7 +77,7 @@ fn grid(t: &Theme) -> El {
         for (ci, label) in r.iter().enumerate() {
             let digit = ri >= 2 && ci < 3;
             let b = if *label == "=" {
-                key(t, label, 0x60CDFF, 0x7DD6FF, accent_fg, weights::SEMIBOLD, 20.0)
+                key(t, label, 0x4CC2FF, 0x60CDFF, accent_fg, weights::SEMIBOLD, 20.0)
             } else if digit {
                 key(t, label, DIGIT_FILL, DIGIT_HOVER, fg, weights::SEMIBOLD, 20.0)
             } else {

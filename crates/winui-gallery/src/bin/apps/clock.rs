@@ -200,7 +200,8 @@ fn setting_card(
                     .child(
                         text(desc)
                             .font(font(t.type_ramp().caption))
-                            .color(c(k.text_fill_color_secondary)),
+                            .color(c(k.text_fill_color_secondary))
+                            .wrap(),
                     ),
             )
             .child(trailing),
@@ -221,8 +222,9 @@ pub fn settings(t: &Theme) -> El {
         .child(
             col()
                 .w_full()
-                .max_w(704.0)
-                .px(48.0)
+                .max_w(955.0)
+                .pl(104.0)
+                .pr(48.0)
                 .pb(32.0)
                 .child(
                     el().h(80.0).items_end().pb(10.0).child(
