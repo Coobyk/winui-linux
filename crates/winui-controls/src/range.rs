@@ -10,7 +10,8 @@ use crate::shim::theme::{self, sizes, Theme};
 use crate::style::{self, focus_rect, rc, Hook, R};
 
 /// The slider geometry (`SliderTrackThemeHeight` 4, thumb 20 with a 12px accent core).
-const THUMB: f32 = 20.0;
+/// `SliderHorizontalThumbWidth` / `Height`.
+const THUMB: f32 = 18.0;
 const TRACK: f32 = 4.0;
 
 /// `Slider` — Gallery "Slider": 4px track, accent value fill, 20px thumb whose accent core
@@ -90,20 +91,23 @@ impl Slider {
         let w = self.width;
         let travel = w - THUMB;
         let x = travel * self.frac();
-        let (fill, rest) = if en {
-            (k.accent_fill_color_default, k.control_strong_fill_color_default)
+        // SliderTrackFill / SliderTrackValueFill / SliderThumbBackground per state.
+        let (fill, hover_fill, rest) = if en {
+            (style::by_state(k.accent_fill_color_default, k.accent_fill_color_secondary, k.accent_fill_color_tertiary), k.accent_fill_color_secondary, k.control_strong_fill_color_default)
         } else {
-            (k.accent_fill_color_disabled, k.control_strong_fill_color_disabled)
+            (k.accent_fill_color_disabled, k.accent_fill_color_disabled, k.control_strong_fill_color_disabled)
         };
         let ty = (sizes::CONTROL_HEIGHT - TRACK) / 2.0;
         let track = rune::el().absolute(THUMB / 2.0, ty).size(travel, TRACK).radius(TRACK / 2.0).fill(rc(rest));
-        let value = rune::el().absolute(THUMB / 2.0, ty).size(x.max(0.0), TRACK).radius(TRACK / 2.0).fill(rc(fill));
-        let thumb = thumb(t, en, x, (sizes::CONTROL_HEIGHT - THUMB) / 2.0, fill);
-        let mut s = rune::el()
-            .size(w, sizes::CONTROL_HEIGHT)
-            .hover_group()
-            .child(track)
-            .child(value)
+        let value = |c: theme::Color| rune::el().absolute(THUMB / 2.0, ty).size(x.max(0.0), TRACK).radius(TRACK / 2.0).fill(rc(c));
+        let thumb = thumb(t, en, x, (sizes::CONTROL_HEIGHT - THUMB) / 2.0, fill, hover_fill);
+        let mut s = rune::el().size(w, sizes::CONTROL_HEIGHT).hover_group().child(track);
+        s = if style::pinned().is_some() {
+            s.child(value(fill))
+        } else {
+            s.child(style::hover_layer(value(fill), 1.0, 0.0)).child(style::hover_layer(value(hover_fill), 0.0, 1.0))
+        };
+        let mut s = s
             .child(thumb)
             .role("slider")
             .label(self.header.clone().unwrap_or_else(|| "Slider".into()))
@@ -129,19 +133,30 @@ pub fn value_at(x: f32, w: f32, min: f64, max: f64, step: f64) -> f64 {
     v.clamp(min, max)
 }
 
-fn thumb(t: &Theme, en: bool, x: f32, y: f32, core: theme::Color) -> El {
+fn thumb(t: &Theme, en: bool, x: f32, y: f32, core: theme::Color, hover_core: theme::Color) -> El {
     let k = t.tokens();
+    // SliderOuterThumbBackground + SliderThumbBorderBrush (ControlElevationBorderBrush).
+    let g = &k.control_elevation_border;
     let ring = rune::el()
         .absolute(x, y)
         .size(THUMB, THUMB)
         .radius(THUMB / 2.0)
         .fill(rc(k.control_solid_fill_color_default))
-        .border_gradient(1.0, rc(k.control_stroke_color_default), rc(k.control_stroke_color_secondary));
-    let dot = |size: f32| {
-        rune::el().absolute((THUMB - size) / 2.0, (THUMB - size) / 2.0).size(size, size).radius(size / 2.0).fill(rc(core))
+        .border_gradient(1.0, rc(g.top(THUMB)), rc(g.bottom(THUMB)));
+    let dot = |size: f32, c: theme::Color| {
+        rune::el().absolute((THUMB - size) / 2.0, (THUMB - size) / 2.0).size(size, size).radius(size / 2.0).fill(rc(c))
     };
-    let ring = ring.child(dot(12.0).group_opacity(1.0, 0.0));
-    if en { ring.child(dot(14.0).group_opacity(0.0, 1.0)).press_scale(0.86) } else { ring }
+    // SliderInnerThumb (12px) scaled 0.86 at rest, 1.167 PointerOver, 0.71 Pressed.
+    let (rest, hover, pressed) = (12.0 * 0.86, 12.0 * 1.167, 12.0 * 0.71);
+    if !en {
+        return ring.child(dot(rest, core));
+    }
+    match style::pinned() {
+        Some(style::VisualState::Pressed) => ring.child(dot(pressed, core)),
+        _ => ring
+            .child(style::hover_layer(dot(rest, core), 1.0, 0.0))
+            .child(style::hover_layer(dot(hover, hover_core), 0.0, 1.0).press_scale(pressed / hover)),
+    }
 }
 
 /// `ColorPicker`-lite — Gallery "ColorPicker" with `ColorSpectrumShape` swapped for a swatch
@@ -217,7 +232,7 @@ impl ColorPicker {
                 .size(256.0, sizes::CONTROL_HEIGHT)
                 .hover_group()
                 .child(bar)
-                .child(thumb(t, self.enabled, x, (sizes::CONTROL_HEIGHT - THUMB) / 2.0, c.with_alpha(1.0)))
+                .child(thumb(t, self.enabled, x, (sizes::CONTROL_HEIGHT - THUMB) / 2.0, c.with_alpha(1.0), c.with_alpha(1.0)))
                 .role("slider")
                 .label(name)
                 .range_value((v * 255.0).round() as f64, 0.0, 255.0)

@@ -1,12 +1,62 @@
 //! Shared Fluent recipes: colour conversion, the type ramp as Rune text styles, focus visuals,
 //! glyphs and the Rest/PointerOver/Pressed/Disabled fill sets every control resolves from
 //! `Theme::tokens()`.
+use std::cell::Cell;
 use std::rc::Rc;
 
 use rune::{El, Shape, TextStyle};
 
 use crate::shim::icons::{self, Glyph, Symbol};
 use crate::shim::theme::{self, radii, Theme, Tokens};
+
+/// A WinUI `CommonStates` visual state that can be pinned for state galleries and
+/// snapshots (`VisualStateManager.GoToState`). `Disabled` is `enabled(false)` on each control.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum VisualState {
+    Rest,
+    PointerOver,
+    Pressed,
+}
+
+thread_local! {
+    static PINNED: Cell<Option<VisualState>> = const { Cell::new(None) };
+}
+
+/// Builds `f` with every control's interactive state frozen to `s`: views resolve their
+/// PointerOver / Pressed brushes statically instead of attaching hover and press hooks.
+pub fn with_visual_state<R>(s: VisualState, f: impl FnOnce() -> R) -> R {
+    struct Restore(Option<VisualState>);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            PINNED.with(|p| p.set(self.0));
+        }
+    }
+    let _restore = Restore(PINNED.with(|p| p.replace(Some(s))));
+    f()
+}
+
+/// The state pinned by [`with_visual_state`], if any.
+pub fn pinned() -> Option<VisualState> {
+    PINNED.with(|p| p.get())
+}
+
+/// `rest` / `hover` / `pressed` by the pinned state (`rest` when live).
+pub fn by_state<T>(rest: T, hover: T, pressed: T) -> T {
+    match pinned() {
+        Some(VisualState::PointerOver) => hover,
+        Some(VisualState::Pressed) => pressed,
+        _ => rest,
+    }
+}
+
+/// `group_opacity(rest, hover)` honouring a pinned state (Pressed shows the hover layer).
+pub fn hover_layer(e: El, rest: f32, hover: f32) -> El {
+    match pinned() {
+        None => e.group_opacity(rest, hover),
+        Some(VisualState::Rest) => e.opacity(rest),
+        Some(_) => e.opacity(hover),
+    }
+}
 
 /// `winui_theme::Color` (sRGB) to Rune's linear colour.
 pub fn rc(c: theme::Color) -> rune::Color {
@@ -61,7 +111,7 @@ pub struct StateSet {
 
 impl StateSet {
     pub fn pick(&self, enabled: bool) -> theme::Color {
-        if enabled { self.rest } else { self.disabled }
+        if enabled { by_state(self.rest, self.hover, self.pressed) } else { self.disabled }
     }
 }
 
@@ -97,10 +147,12 @@ impl Elevation {
     /// fill stops at the ring's inner edge (`BackgroundSizing="InnerBorderEdge"`) and the
     /// translucent stroke composites over what is behind the control, not over its fill.
     pub fn ring(&self, enabled: bool, corners: [f32; 4]) -> El {
-        if enabled {
-            ring(corners, -INSET, self.body, self.edge, self.edge_bottom, 1.0)
-        } else {
+        if !enabled {
             ring(corners, -INSET, self.flat, self.flat, false, 1.0)
+        } else if pinned() == Some(VisualState::Pressed) {
+            ring(corners, -INSET, self.pressed, self.pressed, false, 1.0)
+        } else {
+            ring(corners, -INSET, self.body, self.edge, self.edge_bottom, 1.0)
         }
     }
 }
@@ -208,7 +260,7 @@ impl Recipe {
         if let Some(b) = self.border {
             e = e.mx(INSET).my(INSET).corners(inner(corners)).child(b.ring(enabled, corners));
         }
-        if enabled {
+        if enabled && pinned().is_none() {
             e = e
                 .hover_fill(rc(self.fill.hover))
                 .press_fill(rc(self.fill.pressed))
@@ -343,6 +395,21 @@ pub fn layers(size: (f32, f32), radius: f32, rest: (theme::Color, Option<theme::
     };
     rune::el()
         .size(size.0, size.1)
-        .child(layer(rest).group_opacity(1.0, 0.0))
-        .child(layer(hover).group_opacity(0.0, 1.0))
+        .child(hover_layer(layer(rest), 1.0, 0.0))
+        .child(hover_layer(layer(hover), 0.0, 1.0))
+}
+
+/// [`layers`] plus the Pressed fill/stroke, shown when Pressed is pinned. Live presses keep
+/// the PointerOver layer: Rune's press hooks restyle only the pressed element, not children.
+pub fn layers3(
+    size: (f32, f32),
+    radius: f32,
+    rest: (theme::Color, Option<theme::Color>),
+    hover: (theme::Color, Option<theme::Color>),
+    pressed: (theme::Color, Option<theme::Color>),
+) -> El {
+    match pinned() {
+        Some(VisualState::Pressed) => layers(size, radius, pressed, pressed),
+        _ => layers(size, radius, rest, hover),
+    }
 }

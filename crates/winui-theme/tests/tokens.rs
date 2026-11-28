@@ -22,9 +22,9 @@ fn dark_values_match_winui() {
     assert_eq!(hex(k.system_fill_color_success), "#FF6CCB5F");
     assert_eq!(hex(k.system_fill_color_caution), "#FFFCE100");
     assert_eq!(hex(k.system_fill_color_critical), "#FFFF99A4");
-    assert_eq!(hex(k.accent_fill_color_default), "#FF60CDFF");
+    assert_eq!(hex(k.accent_fill_color_default), "#FF4CC2FF");
     assert_eq!(hex(k.accent_text_fill_color_primary), "#FF99EBFF");
-    assert_eq!(hex(k.system_fill_color_attention), "#FF60CDFF");
+    assert_eq!(hex(k.system_fill_color_attention), "#FF4CC2FF");
     assert_eq!(
         k.accent_fill_color_secondary.to_rgba8()[3],
         (0.9f32 * 255.0).round() as u8
@@ -269,4 +269,20 @@ fn metrics() {
     let e = motion::ease(motion::FAST_OUT_SLOW_IN, 0.5);
     assert!(e > 0.8 && e < 1.0, "{e}");
     assert_eq!(motion::ease(motion::FAST_OUT_SLOW_IN, 1.0), 1.0);
+}
+
+#[test]
+fn windows11_default_accent_ramp() {
+    let a = AccentRamp::DEFAULT;
+    let got: Vec<String> = a.steps().iter().map(|c| c.to_string()).collect();
+    assert_eq!(got, ["#FF001A68", "#FF003E92", "#FF0067C0", "#FF0078D4", "#FF0091F8", "#FF4CC2FF", "#FF99EBFF"]);
+    assert_eq!(hex(Theme::light().tokens().accent_fill_color_default), "#FF0067C0");
+}
+
+#[test]
+fn caption_buttons() {
+    let c = Theme::dark().caption_buttons();
+    assert_eq!(hex(c.close_fill_pointer_over), "#FFC42B1C");
+    assert_eq!(hex(CAPTION_CLOSE_RED_LEGACY), "#FFE81123");
+    assert_eq!(hex(Theme::dark().acrylic_fallback()), "#FF2C2C2C");
 }

@@ -237,7 +237,7 @@ mod tests {
     #[test]
     fn oklab_roundtrip() {
         for hex in [
-            "#0078D4", "#60CDFF", "#001A68", "#FCE100", "#202020", "#FFFFFF", "#000000",
+            "#0078D4", "#4CC2FF", "#001A68", "#FCE100", "#202020", "#FFFFFF", "#000000",
         ] {
             let c = Color::from_hex(hex).unwrap();
             let back = Color::from_oklab(c.to_oklab(), 1.0);

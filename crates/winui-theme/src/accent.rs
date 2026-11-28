@@ -17,15 +17,17 @@ pub struct AccentRamp {
 }
 
 impl AccentRamp {
-    /// Windows 11's default ("Blue") accent ramp as `UISettings` reports it for
-    /// `#0078D4`. Sources per step are listed in the crate README.
+    /// Windows 11's default ("Blue") accent ramp: the shell's default `AccentPalette`
+    /// (`99EBFF 4CC2FF 0091F8 0078D4 0067C0 003E92 001A68`) as `UISettings` reports it.
+    /// Matches the reference screenshots: dark-theme accent fills sample `#4CC2FF` (Light2),
+    /// accent text `#99EBFF` (Light3); light-theme accent fills are `#0067C0` (Dark1).
     pub const DEFAULT: Self = Self {
         dark3: Color::from_argb(0xFF001A68),
         dark2: Color::from_argb(0xFF003E92),
         dark1: Color::from_argb(0xFF0067C0),
         base: Color::from_argb(0xFF0078D4),
-        light1: Color::from_argb(0xFF0093F9),
-        light2: Color::from_argb(0xFF60CDFF),
+        light1: Color::from_argb(0xFF0091F8),
+        light2: Color::from_argb(0xFF4CC2FF),
         light3: Color::from_argb(0xFF99EBFF),
     };
 

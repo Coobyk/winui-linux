@@ -157,7 +157,10 @@ impl TextBox {
                 style::ring([R; 4], 0.0, k.control_stroke_color_default, k.accent_fill_color_default, true, 2.0)
             }
             (true, false) => {
-                field = field.fill(rc(k.control_fill_color_default)).hover_fill(rc(k.control_fill_color_secondary));
+                field = field.fill(rc(style::by_state(k.control_fill_color_default, k.control_fill_color_secondary, k.control_fill_color_default)));
+                if style::pinned().is_none() {
+                    field = field.hover_fill(rc(k.control_fill_color_secondary));
+                }
                 style::ring([R; 4], 0.0, k.control_stroke_color_default, k.control_strong_stroke_color_default, true, 1.0)
             }
         };
