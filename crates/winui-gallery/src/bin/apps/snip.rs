@@ -43,14 +43,20 @@ fn win_logo() -> El {
 
 pub fn view(t: &Theme) -> El {
     let k = t.tokens();
+    let divider = || {
+        el().w(1.0)
+            .h(16.0)
+            .fill(c(k.divider_stroke_color_default))
+            .mx(4.0)
+    };
     let toolbar = row()
         .w_full()
-        .h(56.0)
+        .h(48.0)
         .items_center()
         .px(12.0)
         .gap(4.0)
         .child(
-            row().h(34.0).items_center().px(12.0).gap(8.0).radius(radii::CONTROL)
+            row().h(32.0).items_center().px(12.0).gap(8.0).radius(radii::CONTROL)
                 .fill(c(k.control_fill_color_default))
                 .border(1.0, c(k.control_stroke_color_default))
                 .hover(c(k.control_fill_color_secondary))
@@ -63,24 +69,26 @@ pub fn view(t: &Theme) -> El {
         )
         .child(tool_icon(t, Symbol::Camera, true, false))
         .child(tool_icon(t, Symbol::Video, false, false))
+        .child(divider())
         .child(tool_icon(t, Symbol::SelectAll, false, true))
         .child(tool_icon(t, Symbol::Timer, false, true))
+        .child(divider())
         .child(tool_icon(t, Symbol::SquareMultiple, false, false))
         .child(el().grow(1.0).min_w(0.0))
         .child(tool_icon(t, Symbol::MoreHorizontal, false, false));
 
     let empty = el().w_full().h_full().center().child(
-        row().items_center().gap(6.0)
+        row().items_center().gap(5.0)
             .child(
                 text("Press")
-                    .font(TextStyle::new(13.0, weights::REGULAR as f32))
-                    .color(c(k.text_fill_color_primary)),
+                    .font(TextStyle::new(12.0, weights::REGULAR as f32))
+                    .color(c(k.text_fill_color_secondary)),
             )
             .child(win_logo())
             .child(
                 text("+ Shift + S to start a snip")
-                    .font(TextStyle::new(13.0, weights::REGULAR as f32))
-                    .color(c(k.text_fill_color_primary)),
+                    .font(TextStyle::new(12.0, weights::REGULAR as f32))
+                    .color(c(k.text_fill_color_secondary)),
             ),
     );
 

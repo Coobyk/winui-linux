@@ -77,11 +77,11 @@ fn grid(t: &Theme) -> El {
         for (ci, label) in r.iter().enumerate() {
             let digit = ri >= 2 && ci < 3;
             let b = if *label == "=" {
-                key(t, label, 0x4CC2FF, 0x60CDFF, accent_fg, weights::SEMIBOLD, 20.0)
+                key(t, label, 0x6FB7E8, 0x8CCBF0, accent_fg, weights::REGULAR, 18.0)
             } else if digit {
-                key(t, label, DIGIT_FILL, DIGIT_HOVER, fg, weights::SEMIBOLD, 20.0)
+                key(t, label, DIGIT_FILL, DIGIT_HOVER, fg, weights::REGULAR, 18.0)
             } else {
-                key(t, label, OPS_FILL, OPS_HOVER, fg, weights::REGULAR, 16.0)
+                key(t, label, OPS_FILL, OPS_HOVER, fg, weights::REGULAR, 15.0)
             };
             line = line.child(b);
         }
@@ -93,7 +93,7 @@ fn grid(t: &Theme) -> El {
 pub fn view(t: &Theme) -> El {
     let k = t.tokens();
     let mem = ["MC", "MR", "M+", "M−", "MS", "Mˇ"];
-    let mut mem_row = row().w_full().h(32.0);
+    let mut mem_row = row().w_full().h(24.0);
     for (i, m) in mem.iter().enumerate() {
         let disabled = i < 2;
         mem_row = mem_row.child(
@@ -106,12 +106,12 @@ pub fn view(t: &Theme) -> El {
                 .hover(c(k.subtle_fill_color_secondary))
                 .child(chrome::txt(
                     m,
-                    13.0,
+                    12.0,
                     weights::REGULAR,
                     if disabled {
                         k.text_fill_color_disabled
                     } else {
-                        k.text_fill_color_primary
+                        k.text_fill_color_secondary
                     },
                 )),
         );
@@ -156,15 +156,14 @@ pub fn view(t: &Theme) -> El {
 
     let display = row()
         .w_full()
-        .grow(1.0)
-        .min_h(0.0)
+        .h(96.0)
         .items_end()
         .justify_end()
         .pr(12.0)
-        .pb(8.0)
+        .pb(6.0)
         .child(
             text("0")
-                .font(TextStyle::new(50.0, 400.0))
+                .font(TextStyle::new(46.0, 400.0))
                 .color(c(k.text_fill_color_primary)),
         );
 

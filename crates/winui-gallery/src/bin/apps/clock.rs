@@ -182,13 +182,13 @@ fn setting_card(
             .w_full()
             .min_h(56.0)
             .items_center()
-            .pl(14.0)
+            .pl(16.0)
             .pr(16.0)
-            .py(8.0)
+            .py(7.0)
             .child(
-                el().size(34.0, 34.0)
+                el().size(30.0, 30.0)
                     .center()
-                    .child(icon(sym, 20.0, k.text_fill_color_primary)),
+                    .child(icon(sym, 18.0, k.text_fill_color_primary)),
             )
             .child(
                 col().grow(1.0).min_w(0.0).pl(8.0).gap(2.0)
@@ -223,7 +223,7 @@ pub fn settings(t: &Theme) -> El {
             col()
                 .w_full()
                 .max_w(955.0)
-                .pl(104.0)
+                .pl(60.0)
                 .pr(48.0)
                 .pb(32.0)
                 .child(

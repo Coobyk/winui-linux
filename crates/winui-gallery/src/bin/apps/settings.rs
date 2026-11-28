@@ -11,7 +11,7 @@ const BLUE: u32 = 0x4CC2FF;
 fn search_box(t: &Theme) -> El {
     let k = t.tokens();
     row()
-        .w(390.0)
+        .w(460.0)
         .h(32.0)
         .items_center()
         .pl(14.0)
@@ -32,18 +32,18 @@ fn avatar(t: &Theme) -> El {
     let k = t.tokens();
     row()
         .w_full()
-        .h(96.0)
+        .h(80.0)
         .items_center()
-        .px(16.0)
+        .px(14.0)
         .child(
-            el().size(60.0, 60.0)
-                .radius(30.0)
+            el().size(48.0, 48.0)
+                .radius(24.0)
                 .fill(c(hex(0x6E6E6E)))
                 .center()
-                .child(icon(Symbol::Person, 34.0, hex(0xBFBFBF))),
+                .child(icon(Symbol::Person, 26.0, hex(0xBFBFBF))),
         )
         .child(
-            col().pl(16.0).gap(2.0)
+            col().pl(12.0).gap(2.0)
                 .child(
                     text("Coobyk")
                         .font(font(t.type_ramp().body_strong))
@@ -81,21 +81,28 @@ fn ms365() -> El {
 
 fn hero(t: &Theme) -> El {
     let k = t.tokens();
-    chrome::card(t).h(108.0).clip_rounded(radii::OVERLAY).child(
-        row().w_full().h_full().items_center().px(16.0).child(
+    chrome::card(t).h(88.0).clip_rounded(radii::OVERLAY).child(
+        row().w_full().h_full().items_center().px(12.0).child(
             // Windows "bloom" thumbnail approximation.
-            el().size(98.0, 66.0)
-                .radius(6.0)
+            el().size(88.0, 54.0)
+                .radius(4.0)
                 .linear_gradient(
-                    std::f32::consts::PI * 0.8,
-                    [(0.0, c(hex(0x0B3B8F))), (1.0, c(hex(0x154F9E)))],
+                    std::f32::consts::PI * 0.75,
+                    [(0.0, c(hex(0x0A2A66))), (1.0, c(hex(0x0F3D8C)))],
                 )
                 .child(
-                    el().size(44.0, 44.0)
-                        .radius(22.0)
-                        .fill(c(hex(0x3B78D6)))
-                        .opacity(0.55)
-                        .pin(Some(27.0), Some(11.0), None, None),
+                    el().size(40.0, 40.0)
+                        .radius(20.0)
+                        .fill(c(hex(0x1E5FBF)))
+                        .opacity(0.7)
+                        .pin(Some(24.0), Some(8.0), None, None),
+                )
+                .child(
+                    el().size(22.0, 22.0)
+                        .radius(11.0)
+                        .fill(c(hex(0x5DA9F0)))
+                        .opacity(0.75)
+                        .pin(Some(32.0), Some(15.0), None, None),
                 ),
         )
         .child(
@@ -140,10 +147,10 @@ fn sys_card(t: &Theme, sym: Symbol, tint: Color, title: &str, desc: &str) -> El 
     chrome::card(t).child(
         row()
             .w_full()
-            .h(70.0)
+            .h(58.0)
             .items_center()
             .px(16.0)
-            .child(el().size(40.0, 40.0).center().child(icon(sym, 22.0, tint)))
+            .child(el().size(32.0, 32.0).center().child(icon(sym, 18.0, tint)))
             .child(
                 col().grow(1.0).min_w(0.0).pl(8.0).gap(3.0)
                     .child(
@@ -183,7 +190,7 @@ pub fn view(t: &Theme) -> El {
         navlist = navlist.child(chrome::nav_row(t, s, l, tint, sel));
     }
     let pane = col()
-        .w(288.0)
+        .w(250.0)
         .h_full()
         .min_h(0.0)
         .child(avatar(t))
@@ -220,7 +227,7 @@ pub fn view(t: &Theme) -> El {
                 .px(40.0)
                 .pb(32.0)
                 .child(
-                    col().h(88.0).w_full().justify_end().pb(12.0).child(
+                    col().h(72.0).w_full().justify_end().pb(12.0).child(
                         text("System")
                             .font(font(t.type_ramp().title))
                             .color(c(k.text_fill_color_primary)),
